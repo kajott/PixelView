@@ -26,7 +26,7 @@
 #include "app.h"
 
 #ifndef NDEBUG  // secondary debug switch for very verbose debug sources
-    //#define DEBUG_UPDATE_VIEW
+    #define DEBUG_UPDATE_VIEW
 #endif
 
 
@@ -162,11 +162,9 @@ int PixelViewApp::run(int argc, char *argv[]) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        drawUI();
+        if (m_showConfig) { uiConfigWindow(); }
         #ifndef NDEBUG
-            if (m_showDemo) {
-                ImGui::ShowDemoWindow(&m_showDemo);
-            }
+            if (m_showDemo) { ImGui::ShowDemoWindow(&m_showDemo); }
         #endif
         ImGui::Render();
 
@@ -219,6 +217,9 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
     (void)scancode, (void)mods;
     if (((action != GLFW_PRESS) && (action != GLFW_REPEAT)) || m_io->WantCaptureKeyboard) { return; }
     switch (key) {
+        case GLFW_KEY_F2:
+            m_showConfig = !m_showConfig;
+            break;
         case GLFW_KEY_F9:
             m_showDemo = !m_showDemo;
             break;
@@ -228,17 +229,37 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
 }
 
 void PixelViewApp::handleMouseButtonEvent(int button, int action, int mods) {
-    (void)button, (void)action, (void)mods;
-    if (m_io->WantCaptureMouse) { return; }
+    (void)mods;
+    if (action == GLFW_RELEASE) {
+        m_panning = false;
+    } else if (!m_io->WantCaptureMouse && ((button == GLFW_MOUSE_BUTTON_LEFT) || (button == GLFW_MOUSE_BUTTON_MIDDLE))) {
+        double x = m_io->DisplaySize.x * 0.5;
+        double y = m_io->DisplaySize.y * 0.5;
+        glfwGetCursorPos(m_window, &x, &y);
+        m_panX = m_x0 - x;
+        m_panY = m_y0 - y;
+        m_panning = true;
+    }
 }
 
 void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
-    (void)xpos, (void)ypos;
+    if (m_panning && ((glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT)   == GLFW_PRESS)
+                  ||  (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS))) {
+        m_x0 = xpos + m_panX;
+        m_y0 = ypos + m_panY;
+        updateView(false);
+    }
 }
 
 void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     (void)xoffset, (void)yoffset;
     if (m_io->WantCaptureMouse) { return; }
+    double x = m_io->DisplaySize.x * 0.5;
+    double y = m_io->DisplaySize.y * 0.5;
+    glfwGetCursorPos(m_window, &x, &y);
+    if (yoffset > 0.0) { m_zoom *= std::sqrt(2.0); }
+    if (yoffset < 0.0) { m_zoom /= std::sqrt(2.0); }
+    m_viewMode = vmFree;  updateView(true, x, y);
 }
 
 void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
@@ -247,13 +268,16 @@ void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
 }
 
 void PixelViewApp::handleResizeEvent(int width, int height) {
-    updateView(width, height);
+    m_screenWidth  = width;
+    m_screenHeight = height;
+    updateView();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 void PixelViewApp::loadImage(const char* filename) {
     m_imgWidth = m_imgHeight = 0;
+    m_viewWidth = m_viewHeight = 0.0;
     #ifndef NDEBUG
         printf("loading image: '%s'\n", filename);
     #endif
@@ -280,7 +304,7 @@ void PixelViewApp::loadImage(const char* filename) {
     m_aspect = 1.0;
     m_viewMode = vmFit;
     m_x0 = m_y0 = 0.0;
-    updateView();
+    updateView(false);
 }
 
 void PixelViewApp::unloadImage() {
@@ -292,14 +316,18 @@ void PixelViewApp::unloadImage() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void PixelViewApp::updateView() {
-    updateView(m_io->DisplaySize.x, m_io->DisplaySize.y);
-}
-
-void PixelViewApp::updateView(double screenWidth, double screenHeight) {
+void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     if (!imgValid()) {
         return;  // no image loaded
     }
+
+    // initialize screen size on very first call
+    if (m_screenWidth  < 1.0) { m_screenWidth  = m_io->DisplaySize.x; }
+    if (m_screenHeight < 1.0) { m_screenHeight = m_io->DisplaySize.y; }
+
+    // compute pivot position into relative coordinates
+    double pivotRelX = (m_viewWidth  > 1.0) ? ((pivotX - m_x0) / m_viewWidth)  : 0.5;
+    double pivotRelY = (m_viewHeight > 1.0) ? ((pivotY - m_y0) / m_viewHeight) : 0.5;
 
     // compute raw image size with aspect ratio correction
     double rawWidth  = m_imgWidth  * std::max(m_aspect, 1.0);
@@ -310,15 +338,15 @@ void PixelViewApp::updateView(double screenWidth, double screenHeight) {
         printf("updateView: mode=%s int=%s imgSize=%dx%d rawSize=%.0fx%.0f screenSize=%.0fx%.0f ",
                (m_viewMode == vmFree) ? "free" : (m_viewMode == vmFill) ? "fill" : "fit ",
                isInt ? "yes" : "no ",
-               m_imgWidth,m_imgHeight, rawWidth,rawHeight, screenWidth,screenHeight);
+               m_imgWidth,m_imgHeight, rawWidth,rawHeight, m_screenWidth,m_screenHeight);
     #endif
 
     // perform auto-fit computations
     if (autofit) {
         // compute scaling factors in both directions;
         // in integer scaling mode, take the maximum crop into account
-        double zoomX = screenWidth  / (isInt ? (rawWidth  * (1.0 - m_maxCrop)) : rawWidth);
-        double zoomY = screenHeight / (isInt ? (rawHeight * (1.0 - m_maxCrop)) : rawHeight);
+        double zoomX = m_screenWidth  / (isInt ? (rawWidth  * (1.0 - m_maxCrop)) : rawWidth);
+        double zoomY = m_screenHeight / (isInt ? (rawHeight * (1.0 - m_maxCrop)) : rawHeight);
         // select the appropriate zoom factor
         if (m_viewMode == vmFill) { m_zoom = std::max(zoomX, zoomY); }
         else                      { m_zoom = std::min(zoomX, zoomY); }
@@ -340,38 +368,38 @@ void PixelViewApp::updateView(double screenWidth, double screenHeight) {
     if (zoomDown) { m_zoom = 1.0 / m_zoom; }
 
     // compute final document size
-    double viewWidth  = rawWidth  * m_zoom;
-    double viewHeight = rawHeight * m_zoom;
+    m_viewWidth  = rawWidth  * m_zoom;
+    m_viewHeight = rawHeight * m_zoom;
     #ifdef DEBUG_UPDATE_VIEW
-        printf("->%.3f viewSize=%.0fx%.0f offset=%.0f,%.0f", m_zoom, viewWidth,viewHeight, m_x0,m_y0);
+        printf("->%.3f viewSize=%.0fx%.0f offset=%.0f,%.0f", m_zoom, m_viewWidth,m_viewHeight, m_x0,m_y0);
     #endif
+
+    // reconstruct image origin from pivot
+    if (usePivot) {
+        m_x0 = pivotX - pivotRelX * m_viewWidth;
+        m_y0 = pivotY - pivotRelY * m_viewHeight;
+    }
 
     // constrain image origin
     auto constrain = [&] (double &pos, double &minPos, double viewSize, double screenSize) {
-        if (autofit || (viewSize <= screenSize)) {
+        minPos = std::min(0.0, screenSize - viewSize);
+        if (autofit || (minPos >= 0.0)) {
             pos = std::floor((screenSize - viewSize) * 0.5);
-            minPos = 0.0;
         } else {
-            minPos = screenSize - viewSize;
             pos = std::floor(std::min(0.0, std::max(minPos, pos)));
         }
     };
-    constrain(m_x0, m_minX0, viewWidth,  screenWidth);
-    constrain(m_y0, m_minY0, viewHeight, screenHeight);
+    constrain(m_x0, m_minX0, m_viewWidth,  m_screenWidth);
+    constrain(m_y0, m_minY0, m_viewHeight, m_screenHeight);
     #ifdef DEBUG_UPDATE_VIEW
-        printf("->%.0f,%.0f\n", m_x0,m_y0);
+        printf("->%.0f,%.0f (min=%.0f,%.0f)\n", m_x0,m_y0, m_minX0,m_minY0);
     #endif
 
     // convert into transform matrix
-    m_targetArea.m[0] =  2.0 * (viewWidth  / screenWidth);
-    m_targetArea.m[1] = -2.0 * (viewHeight / screenHeight);
-    m_targetArea.m[2] =  2.0 * (m_x0       / screenWidth)  - 1.0;
-    m_targetArea.m[3] = -2.0 * (m_y0       / screenHeight) + 1.0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-void PixelViewApp::drawUI() {
+    m_targetArea.m[0] =  2.0 * (m_viewWidth  / m_screenWidth);
+    m_targetArea.m[1] = -2.0 * (m_viewHeight / m_screenHeight);
+    m_targetArea.m[2] =  2.0 * (m_x0         / m_screenWidth)  - 1.0;
+    m_targetArea.m[3] = -2.0 * (m_y0         / m_screenHeight) + 1.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

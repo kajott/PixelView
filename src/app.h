@@ -24,9 +24,13 @@ class PixelViewApp {
 
     // UI state
     bool m_active = true;
+    bool m_showConfig = false;
     bool m_showDemo = false;
     int m_imgWidth = 0;
     int m_imgHeight = 0;
+    bool m_panning = false;
+    double m_panX = 0.0;
+    double m_panY = 0.0;
 
     // image view settings
     enum ViewMode {
@@ -41,6 +45,12 @@ class PixelViewApp {
     double m_zoom = 1.0;
     double m_x0 = 0.0;
     double m_y0 = 0.0;
+
+    // image view state
+    double m_screenWidth  = 0.0;
+    double m_screenHeight = 0.0;
+    double m_viewWidth  = 0.0;
+    double m_viewHeight = 0.0;
     double m_minX0 = 0.0;
     double m_minY0 = 0.0;
     struct Area { double m[4]; };
@@ -53,11 +63,11 @@ class PixelViewApp {
     inline bool imgValid() const { return (m_imgWidth > 0) && (m_imgHeight > 0); }
     void loadImage(const char* filename);
     void unloadImage();
-    void updateView();
-    void updateView(double screenWidth, double screenHeight);
+    void updateView(bool usePivot, double pivotX, double pivotY);
+    inline void updateView(bool usePivot=true) { updateView(usePivot, m_screenWidth * 0.5, m_screenHeight * 0.5); }
 
     // UI functions
-    void drawUI();
+    void uiConfigWindow();
 
     // event handling
     void handleKeyEvent(int key, int scancode, int action, int mods);

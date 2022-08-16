@@ -22,19 +22,39 @@ class PixelViewApp {
     GLint m_locArea;
     GLint m_locSize;
 
-    // image geometry
-    struct Area { double m[4]; };
-    Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
-
     // UI state
     bool m_active = true;
     bool m_showDemo = false;
     int m_imgWidth = 0;
     int m_imgHeight = 0;
 
+    // image view settings
+    enum ViewMode {
+        vmFree = 0,  //!< free pan/zoom
+        vmFit,       //!< auto-fit to the screen, with letterbox/pillarbox
+        vmFill,      //!< fill the whole screen, truncate if necessary
+    };
+    ViewMode m_viewMode = vmFit;
+    bool m_integer = false;
+    double m_maxCrop = 0.0;
+    double m_aspect = 1.0;
+    double m_zoom = 1.0;
+    double m_x0 = 0.0;
+    double m_y0 = 0.0;
+    double m_minX0 = 0.0;
+    double m_minY0 = 0.0;
+    struct Area { double m[4]; };
+    Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
+    Area m_targetArea = {{2.0, -2.0, -1.0, 1.0}};
+    inline bool canDoIntegerZoom() const { return (m_aspect >= 0.9999) && (m_aspect <= 1.0001); }
+    inline bool wantIntegerZoom() const { return m_integer && canDoIntegerZoom(); }
+
     // main functions
-    void unloadImage();
+    inline bool imgValid() const { return (m_imgWidth > 0) && (m_imgHeight > 0); }
     void loadImage(const char* filename);
+    void unloadImage();
+    void updateView();
+    void updateView(double screenWidth, double screenHeight);
 
     // UI functions
     void drawUI();
@@ -45,6 +65,7 @@ class PixelViewApp {
     void handleCursorPosEvent(double xpos, double ypos);
     void handleScrollEvent(double xoffset, double yoffset);
     void handleDropEvent(int path_count, const char* paths[]);
+    void handleResizeEvent(int width, int height);
 
 public:
     inline PixelViewApp() {}

@@ -9,6 +9,8 @@
 #include <cmath>
 #include <cassert>
 
+#include <algorithm>
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include "gl_header.h"
@@ -22,6 +24,10 @@
 #include "string_util.h"
 
 #include "app.h"
+
+#ifndef NDEBUG  // secondary debug switch for very verbose debug sources
+    //#define DEBUG_UPDATE_VIEW
+#endif
 
 
 int PixelViewApp::run(int argc, char *argv[]) {
@@ -69,8 +75,8 @@ int PixelViewApp::run(int argc, char *argv[]) {
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleCursorPosEvent(xpos, ypos); });
     glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xoffset, double yoffset)
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleScrollEvent(xoffset, yoffset); });
-    //glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
-    //    { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->updateSize(width, height); });
+    glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
+        { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleResizeEvent(width, height); });
     glfwSetDropCallback(m_window, [](GLFWwindow* window, int path_count, const char* paths[])
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleDropEvent(path_count, paths); });
 
@@ -170,8 +176,11 @@ int PixelViewApp::run(int argc, char *argv[]) {
         glViewport(0, 0, int(m_io->DisplaySize.x), int(m_io->DisplaySize.y));
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // apply smooth transitions [TODO]
+        m_currentArea = m_targetArea;
+
         // draw the image
-        if (m_imgWidth && m_imgHeight) {
+        if (imgValid()) {
             glUseProgram(m_prog);
             glBindTexture(GL_TEXTURE_2D, m_tex);
             glUniform2f(m_locSize, float(m_imgWidth), float(m_imgHeight));
@@ -237,14 +246,11 @@ void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
     loadImage(paths[0]);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-void PixelViewApp::unloadImage() {
-    m_imgWidth = m_imgHeight = 0;
-    glBindTexture(GL_TEXTURE_2D, m_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glBindTexture(GL_TEXTURE_2D, 0);
+void PixelViewApp::handleResizeEvent(int width, int height) {
+    updateView(width, height);
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 void PixelViewApp::loadImage(const char* filename) {
     m_imgWidth = m_imgHeight = 0;
@@ -271,6 +277,96 @@ void PixelViewApp::loadImage(const char* filename) {
     #ifndef NDEBUG
         printf("loaded image successfully (%dx%d pixels)\n", m_imgWidth, m_imgHeight);
     #endif
+    m_aspect = 1.0;
+    m_viewMode = vmFit;
+    m_x0 = m_y0 = 0.0;
+    updateView();
+}
+
+void PixelViewApp::unloadImage() {
+    m_imgWidth = m_imgHeight = 0;
+    glBindTexture(GL_TEXTURE_2D, m_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void PixelViewApp::updateView() {
+    updateView(m_io->DisplaySize.x, m_io->DisplaySize.y);
+}
+
+void PixelViewApp::updateView(double screenWidth, double screenHeight) {
+    if (!imgValid()) {
+        return;  // no image loaded
+    }
+
+    // compute raw image size with aspect ratio correction
+    double rawWidth  = m_imgWidth  * std::max(m_aspect, 1.0);
+    double rawHeight = m_imgHeight / std::min(m_aspect, 1.0);
+    bool isInt = wantIntegerZoom();
+    bool autofit = (m_viewMode != vmFree);
+    #ifdef DEBUG_UPDATE_VIEW
+        printf("updateView: mode=%s int=%s imgSize=%dx%d rawSize=%.0fx%.0f screenSize=%.0fx%.0f ",
+               (m_viewMode == vmFree) ? "free" : (m_viewMode == vmFill) ? "fill" : "fit ",
+               isInt ? "yes" : "no ",
+               m_imgWidth,m_imgHeight, rawWidth,rawHeight, screenWidth,screenHeight);
+    #endif
+
+    // perform auto-fit computations
+    if (autofit) {
+        // compute scaling factors in both directions;
+        // in integer scaling mode, take the maximum crop into account
+        double zoomX = screenWidth  / (isInt ? (rawWidth  * (1.0 - m_maxCrop)) : rawWidth);
+        double zoomY = screenHeight / (isInt ? (rawHeight * (1.0 - m_maxCrop)) : rawHeight);
+        // select the appropriate zoom factor
+        if (m_viewMode == vmFill) { m_zoom = std::max(zoomX, zoomY); }
+        else                      { m_zoom = std::min(zoomX, zoomY); }
+    }
+    #ifdef DEBUG_UPDATE_VIEW
+        printf("zoom=%.3f", m_zoom);
+    #endif
+
+    // integer zooming; essentially there's three modes of operation here:
+    // - enforce exact integer zoom levels if we're very close to an integer
+    //   anyway (done to avoid numerical issues when zooming in/out repeatedly)
+    // - round zoom level to the next closest integer (if integer zoom is on)
+    // - round zoom level to the next *lower* integer (in integer autofit mode)
+    bool zoomDown = (m_zoom < 1.0);
+    if (zoomDown) { m_zoom = 1.0 / m_zoom; }
+    double rounding = (isInt && autofit) ? (zoomDown ? 0.999 : 0.0) : 0.5;
+    double intZoom = std::floor(m_zoom + rounding);
+    if (isInt || (std::abs(m_zoom - intZoom) < 0.001)) { m_zoom = intZoom; }
+    if (zoomDown) { m_zoom = 1.0 / m_zoom; }
+
+    // compute final document size
+    double viewWidth  = rawWidth  * m_zoom;
+    double viewHeight = rawHeight * m_zoom;
+    #ifdef DEBUG_UPDATE_VIEW
+        printf("->%.3f viewSize=%.0fx%.0f offset=%.0f,%.0f", m_zoom, viewWidth,viewHeight, m_x0,m_y0);
+    #endif
+
+    // constrain image origin
+    auto constrain = [&] (double &pos, double &minPos, double viewSize, double screenSize) {
+        if (autofit || (viewSize <= screenSize)) {
+            pos = std::floor((screenSize - viewSize) * 0.5);
+            minPos = 0.0;
+        } else {
+            minPos = screenSize - viewSize;
+            pos = std::floor(std::min(0.0, std::max(minPos, pos)));
+        }
+    };
+    constrain(m_x0, m_minX0, viewWidth,  screenWidth);
+    constrain(m_y0, m_minY0, viewHeight, screenHeight);
+    #ifdef DEBUG_UPDATE_VIEW
+        printf("->%.0f,%.0f\n", m_x0,m_y0);
+    #endif
+
+    // convert into transform matrix
+    m_targetArea.m[0] =  2.0 * (viewWidth  / screenWidth);
+    m_targetArea.m[1] = -2.0 * (viewHeight / screenHeight);
+    m_targetArea.m[2] =  2.0 * (m_x0       / screenWidth)  - 1.0;
+    m_targetArea.m[3] = -2.0 * (m_y0       / screenHeight) + 1.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

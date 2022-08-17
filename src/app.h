@@ -24,6 +24,7 @@ class PixelViewApp {
 
     // UI state
     bool m_active = true;
+    bool m_animate = false;
     bool m_showConfig = false;
     bool m_showDemo = false;
     int m_imgWidth = 0;

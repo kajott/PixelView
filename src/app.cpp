@@ -27,6 +27,7 @@
 
 #ifndef NDEBUG  // secondary debug switch for very verbose debug sources
     //#define DEBUG_UPDATE_VIEW
+    //#define DEBUG_ANIMATION
 #endif
 
 static constexpr double zoomStepSize = 1.4142135623730951;  // sqrt(2)
@@ -182,8 +183,24 @@ int PixelViewApp::run(int argc, char *argv[]) {
         glViewport(0, 0, int(m_io->DisplaySize.x), int(m_io->DisplaySize.y));
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // apply smooth transitions [TODO]
-        m_currentArea = m_targetArea;
+        // apply smooth transitions
+        if (m_animate) {
+            constexpr double alpha = 0.125;
+            double sad = 0.0;
+            for (int i = 0;  i < 4;  ++i) {
+                double diff = m_targetArea.m[i] - m_currentArea.m[i];
+                m_currentArea.m[i] += alpha * diff;
+                sad += std::fabs(diff);
+            }
+            if (sad < (std::min(m_targetArea.m[0], -m_targetArea.m[1]) * (1.0 / 256))) {
+                m_animate = false;
+                #ifdef DEBUG_ANIMATION
+                    printf("animation stopped.\n");
+                #endif
+            }
+        } else {
+            m_currentArea = m_targetArea;
+        }
 
         // draw the image
         if (imgValid()) {
@@ -257,6 +274,7 @@ void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
         m_x0 = xpos + m_panX;
         m_y0 = ypos + m_panY;
         m_viewMode = vmFree;
+        m_animate = false;
         updateView(false);
     }
 }
@@ -294,7 +312,9 @@ void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     double x = m_io->DisplaySize.x * 0.5;
     double y = m_io->DisplaySize.y * 0.5;
     glfwGetCursorPos(m_window, &x, &y);
-    m_viewMode = vmFree;  updateView(true, x, y);
+    m_viewMode = vmFree;
+    m_animate = true;
+    updateView(true, x, y);
 }
 
 void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
@@ -341,6 +361,7 @@ void PixelViewApp::loadImage(const char* filename) {
     m_aspect = 1.0;
     m_viewMode = vmFit;
     m_x0 = m_y0 = 0.0;
+    m_animate = false;
     updateView(false);
 }
 

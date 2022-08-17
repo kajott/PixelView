@@ -53,6 +53,7 @@ class PixelViewApp {
     double m_viewHeight = 0.0;
     double m_minX0 = 0.0;
     double m_minY0 = 0.0;
+    double m_minZoom = 1.0/16;
     struct Area { double m[4]; };
     Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
     Area m_targetArea = {{2.0, -2.0, -1.0, 1.0}};

@@ -26,8 +26,10 @@
 #include "app.h"
 
 #ifndef NDEBUG  // secondary debug switch for very verbose debug sources
-    #define DEBUG_UPDATE_VIEW
+    //#define DEBUG_UPDATE_VIEW
 #endif
+
+static constexpr double zoomStepSize = 1.4142135623730951;  // sqrt(2)
 
 
 int PixelViewApp::run(int argc, char *argv[]) {
@@ -247,18 +249,44 @@ void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
                   ||  (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS))) {
         m_x0 = xpos + m_panX;
         m_y0 = ypos + m_panY;
+        m_viewMode = vmFree;
         updateView(false);
     }
 }
 
 void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
-    (void)xoffset, (void)yoffset;
-    if (m_io->WantCaptureMouse) { return; }
+    (void)xoffset;
+    if ((m_io->WantCaptureMouse) || (std::fabs(yoffset) < 0.01)) { return; }
+    double zstep;
+    double zdir = (yoffset < 0.0) ? (-1.0) : 1.0;
+
+    // convert zoom into pseudo-logarithmic scale
+    if (wantIntegerZoom()) {
+        zstep = (m_zoom >= 1.0) ? (m_zoom - 1.0) : (1.0 - 1.0 / m_zoom);
+    } else {
+        zstep = std::log(m_zoom) / std::log(zoomStepSize);
+    }
+
+    // go to the closest stop in the relevant direction;
+    // if we're already pretty close to a stop, just go one further
+    double istep = std::floor(zstep + 0.5);
+    if (std::fabs(zstep - istep) < 0.125) {
+        zstep = istep + zdir;
+    } else {
+        zstep = std::floor(zstep) + zdir;
+    }
+
+    // convert back to standard zoom value
+    if (wantIntegerZoom()) {
+        m_zoom = (zstep >= 0.0) ? (zstep + 1.0) : (1.0 / (1.0 - zstep));
+    } else {
+        m_zoom = std::pow(zoomStepSize, zstep);
+    }
+
+    // perform the actual zoom action
     double x = m_io->DisplaySize.x * 0.5;
     double y = m_io->DisplaySize.y * 0.5;
     glfwGetCursorPos(m_window, &x, &y);
-    if (yoffset > 0.0) { m_zoom *= std::sqrt(2.0); }
-    if (yoffset < 0.0) { m_zoom /= std::sqrt(2.0); }
     m_viewMode = vmFree;  updateView(true, x, y);
 }
 
@@ -351,6 +379,17 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
         if (m_viewMode == vmFill) { m_zoom = std::max(zoomX, zoomY); }
         else                      { m_zoom = std::min(zoomX, zoomY); }
     }
+
+    // constrain minimum zoom (essentially like autofit, but don't respect
+    // "fill to screen" mode and ignore the maximum crop; also, always allow
+    // at least 1x zoom)
+    m_minZoom = std::min(m_screenWidth / rawWidth, m_screenHeight / rawHeight);
+    if (m_minZoom >= 1.0) {
+        m_minZoom = 1.0;
+    } else if (isInt) {
+        m_minZoom = 1.0 / std::ceil(1.0 / m_minZoom);
+    }
+    m_zoom = std::max(m_zoom, m_minZoom);
     #ifdef DEBUG_UPDATE_VIEW
         printf("zoom=%.3f", m_zoom);
     #endif
@@ -384,9 +423,9 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     auto constrain = [&] (double &pos, double &minPos, double viewSize, double screenSize) {
         minPos = std::min(0.0, screenSize - viewSize);
         if (autofit || (minPos >= 0.0)) {
-            pos = std::floor((screenSize - viewSize) * 0.5);
+            pos = (screenSize - viewSize) * 0.5;
         } else {
-            pos = std::floor(std::min(0.0, std::max(minPos, pos)));
+            pos = std::min(0.0, std::max(minPos, pos));
         }
     };
     constrain(m_x0, m_minX0, m_viewWidth,  m_screenWidth);
@@ -396,10 +435,10 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     #endif
 
     // convert into transform matrix
-    m_targetArea.m[0] =  2.0 * (m_viewWidth  / m_screenWidth);
-    m_targetArea.m[1] = -2.0 * (m_viewHeight / m_screenHeight);
-    m_targetArea.m[2] =  2.0 * (m_x0         / m_screenWidth)  - 1.0;
-    m_targetArea.m[3] = -2.0 * (m_y0         / m_screenHeight) + 1.0;
+    m_targetArea.m[0] =  2.0 * (m_viewWidth      / m_screenWidth);
+    m_targetArea.m[1] = -2.0 * (m_viewHeight     / m_screenHeight);
+    m_targetArea.m[2] =  2.0 * (std::floor(m_x0) / m_screenWidth)  - 1.0;
+    m_targetArea.m[3] = -2.0 * (std::floor(m_y0) / m_screenHeight) + 1.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

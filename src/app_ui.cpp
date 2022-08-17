@@ -33,7 +33,7 @@ void PixelViewApp::uiConfigWindow() {
         ImGui::EndDisabled();
 
         f = float(m_zoom);
-        if (ImGui::SliderFloat("zoom factor", &f, 1.0f/16, 16.0f, "%.02fx", ImGuiSliderFlags_Logarithmic)) {
+        if (ImGui::SliderFloat("zoom factor", &f, float(std::max(m_minZoom, 1.0/16)), 16.0f, "%.02fx", ImGuiSliderFlags_Logarithmic)) {
             m_zoom = f;  m_viewMode = vmFree;  updateView();
         }
 

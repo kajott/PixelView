@@ -226,6 +226,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
     if (((action != GLFW_PRESS) && (action != GLFW_REPEAT)) || m_io->WantCaptureKeyboard) { return; }
     switch (key) {
         case GLFW_KEY_F2:
+        case GLFW_KEY_TAB:
             m_showConfig = !m_showConfig;
             break;
         case GLFW_KEY_F9:

@@ -8,7 +8,7 @@
 
 void PixelViewApp::uiConfigWindow() {
     bool b; float f; int i;
-    if (ImGui::Begin("Display Configuration", &m_showConfig, 0)) {
+    if (ImGui::Begin("Display Configuration", &m_showConfig, ImGuiWindowFlags_NoNavInputs)) {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("view mode:");
         ImGui::SameLine(); if (ImGui::RadioButton("free",          (m_viewMode == vmFree))) { m_viewMode = vmFree; updateView(); }
@@ -21,7 +21,7 @@ void PixelViewApp::uiConfigWindow() {
         ImGui::EndDisabled();
 
         f = float(m_aspect);
-        if (ImGui::SliderFloat("pixel aspect ratio", &f, 0.5f, 2.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) { m_aspect = f; updateView(); }
+        if (ImGui::SliderFloat("pixel aspect", &f, 0.5f, 2.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) { m_aspect = f; updateView(); }
         if (ImGui::BeginPopupContextItem()) {
             if (ImGui::Selectable("reset to square pixels")) { m_aspect = 1.0; updateView(); }
             ImGui::EndPopup();
@@ -29,7 +29,7 @@ void PixelViewApp::uiConfigWindow() {
 
         i = int(m_maxCrop * 100.0 + 0.5);
         ImGui::BeginDisabled(!m_integer);
-        if (ImGui::SliderInt("max. allowed crop", &i, 0, 50, "%d%%")) { m_maxCrop = 0.01 * i; updateView(); }
+        if (ImGui::SliderInt("max. crop", &i, 0, 50, "%d%%")) { m_maxCrop = 0.01 * i; updateView(); }
         ImGui::EndDisabled();
 
         f = float(m_zoom);
@@ -48,8 +48,8 @@ void PixelViewApp::uiConfigWindow() {
             }
             ImGui::EndDisabled();
         };
-        posSlider(m_x0, m_minX0, "horizontal position");
-        posSlider(m_y0, m_minY0, "vertical position");
+        posSlider(m_x0, m_minX0, "X position");
+        posSlider(m_y0, m_minY0, "Y position");
     }
     ImGui::End();
 }

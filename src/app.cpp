@@ -110,7 +110,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
     glBindTexture(GL_TEXTURE_2D, m_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
     GLutil::checkError("texture setup");
@@ -136,11 +136,17 @@ int PixelViewApp::run(int argc, char *argv[]) {
         "\n" "uniform sampler2D uTex;"
         "\n" "in vec2 vPos;"
         "\n" "out vec4 oColor;"
+        "\n" "float mapPos(in float pos, in float deriv) {"
+        "\n" "  float d = abs(deriv);"
+        "\n" "  if (d >= 1.03125) { return pos; }"
+        "\n" "  float i = floor(pos + 0.5);"
+        "\n" "  return i + clamp((pos - i) / d, -0.5, 0.5);"
+        "\n" "}"
         "\n" "void main() {"
-        "\n" "  vec2 pos = vPos * uSize;"
-        "\n" "  vec2 i = floor(pos + 0.5);"
-        "\n" "  pos = (i + clamp((pos - i) / fwidth(pos), -0.5, 0.5)) / uSize;"
-        "\n" "  oColor = texture(uTex, pos);"
+        "\n" "  vec2 rpos = vPos * uSize;"
+        "\n" "  vec2 mpos = vec2(mapPos(rpos.x, dFdx(rpos).x),"
+        "\n" "                   mapPos(rpos.y, dFdy(rpos).y));"
+        "\n" "  oColor = texture(uTex, mpos / uSize, -0.6);"
         "\n" "}"
         "\n");
         if (!fs.good()) {
@@ -325,6 +331,8 @@ void PixelViewApp::loadImage(const char* filename) {
     if (GLutil::checkError("after uploading image texture")) {
         unloadImage(); return;
     }
+    glGenerateMipmap(GL_TEXTURE_2D);
+    GLutil::checkError("mipmap generation");
     glBindTexture(GL_TEXTURE_2D, 0);
     #ifndef NDEBUG
         printf("loaded image successfully (%dx%d pixels)\n", m_imgWidth, m_imgHeight);

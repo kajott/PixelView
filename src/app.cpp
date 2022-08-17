@@ -30,7 +30,11 @@
     //#define DEBUG_ANIMATION
 #endif
 
-static constexpr double zoomStepSize = 1.4142135623730951;  // sqrt(2)
+static constexpr double zoomStepSize         = 1.4142135623730951;  // sqrt(2)
+static constexpr double animationSpeed       = 0.125;
+static constexpr double cursorPanSpeedSlow   = 8.0;    // pixels per keypress (with Shift)
+static constexpr double cursorPanSpeedNormal = 64.0;   // pixels per keypress
+static constexpr double cursorPanSpeedFast   = 512.0;  // pixels per keypress (with Ctrl)
 
 
 int PixelViewApp::run(int argc, char *argv[]) {
@@ -185,11 +189,10 @@ int PixelViewApp::run(int argc, char *argv[]) {
 
         // apply smooth transitions
         if (m_animate) {
-            constexpr double alpha = 0.125;
             double sad = 0.0;
             for (int i = 0;  i < 4;  ++i) {
                 double diff = m_targetArea.m[i] - m_currentArea.m[i];
-                m_currentArea.m[i] += alpha * diff;
+                m_currentArea.m[i] += animationSpeed * diff;
                 sad += std::fabs(diff);
             }
             if (sad < (std::min(m_targetArea.m[0], -m_targetArea.m[1]) * (1.0 / 256))) {
@@ -249,6 +252,16 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_F9:
             m_showDemo = !m_showDemo;
             break;
+        case GLFW_KEY_LEFT:   cursorPan(-1.0, 0.0, mods); break;
+        case GLFW_KEY_RIGHT:  cursorPan(+1.0, 0.0, mods); break;
+        case GLFW_KEY_UP:     cursorPan(0.0, -1.0, mods); break;
+        case GLFW_KEY_DOWN:   cursorPan(0.0, +1.0, mods); break;
+        case GLFW_KEY_KP_MULTIPLY: cycleViewMode(false);  break;
+        case GLFW_KEY_KP_DIVIDE:   cycleViewMode(true);   break;
+        case GLFW_KEY_KP_ADD:      changeZoom(+1.0);      break;
+        case GLFW_KEY_KP_SUBTRACT: changeZoom(-1.0);      break;
+        case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  m_viewMode = vmFree;  m_animate = true;  updateView(); break;
+        case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  m_viewMode = vmFree;  m_animate = true;  updateView(); break;
         default:
             break;
     }
@@ -281,9 +294,29 @@ void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
 
 void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     (void)xoffset;
-    if ((m_io->WantCaptureMouse) || (std::fabs(yoffset) < 0.01)) { return; }
+    if (m_io->WantCaptureMouse) { return; }
+    double xpos = m_io->DisplaySize.x * 0.5;
+    double ypos = m_io->DisplaySize.y * 0.5;
+    changeZoom(yoffset, xpos, ypos);
+}
+
+void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
+    if ((path_count < 1) || !paths || !paths[0] || !paths[0][0]) { return; }
+    loadImage(paths[0]);
+}
+
+void PixelViewApp::handleResizeEvent(int width, int height) {
+    m_screenWidth  = width;
+    m_screenHeight = height;
+    updateView();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void PixelViewApp::changeZoom(double direction, double pivotX, double pivotY) {
+    if (std::fabs(direction) < 0.01) { return; }
     double zstep;
-    double zdir = (yoffset < 0.0) ? (-1.0) : 1.0;
+    double zdir = (direction < 0.0) ? (-1.0) : 1.0;
 
     // convert zoom into pseudo-logarithmic scale
     if (wantIntegerZoom()) {
@@ -309,22 +342,30 @@ void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     }
 
     // perform the actual zoom action
-    double x = m_io->DisplaySize.x * 0.5;
-    double y = m_io->DisplaySize.y * 0.5;
-    glfwGetCursorPos(m_window, &x, &y);
     m_viewMode = vmFree;
     m_animate = true;
-    updateView(true, x, y);
+    updateView(true, pivotX, pivotY);
 }
 
-void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
-    if ((path_count < 1) || !paths || !paths[0] || !paths[0][0]) { return; }
-    loadImage(paths[0]);
+void PixelViewApp::cursorPan(double dx, double dy, int mods) {
+    double speed = (mods & GLFW_MOD_CONTROL) ? cursorPanSpeedFast
+                 : (mods & GLFW_MOD_SHIFT)   ? cursorPanSpeedSlow
+                 :                             cursorPanSpeedNormal;
+    m_x0 = std::floor(m_x0) - dx * speed;
+    m_y0 = std::floor(m_y0) - dy * speed;
+    m_viewMode = vmFree;
+    m_animate = true;
+    updateView();
 }
 
-void PixelViewApp::handleResizeEvent(int width, int height) {
-    m_screenWidth  = width;
-    m_screenHeight = height;
+void PixelViewApp::cycleViewMode(bool with1x) {
+    if (with1x && ((m_viewMode == vmFill) || (true && (std::fabs(m_zoom - 1.0) > 0.03125)))) {
+        m_zoom = 1.0;
+        m_viewMode = vmFree;
+    } else {
+        m_viewMode = (m_viewMode == vmFit) ? vmFill : vmFit;
+    }
+    m_animate = true;
     updateView();
 }
 

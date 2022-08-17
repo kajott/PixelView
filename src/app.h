@@ -67,6 +67,10 @@ class PixelViewApp {
     void unloadImage();
     void updateView(bool usePivot, double pivotX, double pivotY);
     inline void updateView(bool usePivot=true) { updateView(usePivot, m_screenWidth * 0.5, m_screenHeight * 0.5); }
+    void cursorPan(double dx, double dy, int mods);
+    void cycleViewMode(bool with1x);
+    void changeZoom(double direction, double pivotX, double pivotY);
+    inline void changeZoom(double direction) { changeZoom(direction, m_screenWidth * 0.5, m_screenHeight * 0.5); }
 
     // UI functions
     void uiConfigWindow();

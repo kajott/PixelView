@@ -118,7 +118,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
     glBindTexture(GL_TEXTURE_2D, m_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
     GLutil::checkError("texture setup");
@@ -154,7 +154,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         "\n" "  vec2 rpos = vPos * uSize;"
         "\n" "  vec2 mpos = vec2(mapPos(rpos.x, dFdx(rpos).x),"
         "\n" "                   mapPos(rpos.y, dFdy(rpos).y));"
-        "\n" "  oColor = texture(uTex, mpos / uSize, -0.6);"
+        "\n" "  oColor = texture(uTex, mpos / uSize, -0.25);"
         "\n" "}"
         "\n");
         if (!fs.good()) {

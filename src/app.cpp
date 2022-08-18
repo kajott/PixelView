@@ -36,6 +36,9 @@ static constexpr double cursorPanSpeedSlow   = 8.0;    // pixels per keypress (w
 static constexpr double cursorPanSpeedNormal = 64.0;   // pixels per keypress
 static constexpr double cursorPanSpeedFast   = 512.0;  // pixels per keypress (with Ctrl)
 
+static const double presetScrollSpeeds[] = { 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0 };
+static constexpr int numPresetScrollSpeeds = int(sizeof(presetScrollSpeeds) / sizeof(*presetScrollSpeeds));
+
 
 int PixelViewApp::run(int argc, char *argv[]) {
     (void)argc, (void)argv;
@@ -188,9 +191,9 @@ int PixelViewApp::run(int argc, char *argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // auto-scroll
-        if ((m_scrollX != 0.0) || (m_scrollY != 0.0)) {
-            m_x0 -= m_scrollX;
-            m_y0 -= m_scrollY;
+        if (isScrolling()) {
+            m_x0 -= m_scrollX * m_scrollSpeed;
+            m_y0 -= m_scrollY * m_scrollSpeed;
             if ((m_x0 > 0.0) || (m_x0 < m_minX0)) { m_scrollX = 0.0; }
             if ((m_y0 > 0.0) || (m_y0 < m_minY0)) { m_scrollY = 0.0; }
             updateView();
@@ -272,6 +275,9 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  viewCfg("fsa"); break;
         case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  viewCfg("fsa"); break;
         default:
+            if ((key >= GLFW_KEY_1) && (key < (GLFW_KEY_1 + numPresetScrollSpeeds))) {
+                startScroll(presetScrollSpeeds[key - GLFW_KEY_1]);
+            }
             break;
     }
 }
@@ -286,6 +292,7 @@ void PixelViewApp::handleMouseButtonEvent(int button, int action, int mods) {
         glfwGetCursorPos(m_window, &x, &y);
         m_panX = m_x0 - x;
         m_panY = m_y0 - y;
+        m_scrollX = m_scrollY = 0.0;
         m_panning = true;
     }
 }
@@ -371,6 +378,10 @@ void PixelViewApp::changeZoom(double direction, double pivotX, double pivotY) {
 }
 
 void PixelViewApp::cursorPan(double dx, double dy, int mods) {
+    if (mods & GLFW_MOD_ALT) {
+        startScroll(0.0, dx, dy);
+        return;
+    }
     double speed = (mods & GLFW_MOD_CONTROL) ? cursorPanSpeedFast
                  : (mods & GLFW_MOD_SHIFT)   ? cursorPanSpeedSlow
                  :                             cursorPanSpeedNormal;
@@ -387,6 +398,38 @@ void PixelViewApp::cycleViewMode(bool with1x) {
         m_viewMode = (m_viewMode == vmFit) ? vmFill : vmFit;
     }
     viewCfg("sa");
+}
+
+void PixelViewApp::startScroll(double speed, double dx, double dy) {
+    if (speed != 0.0) {
+        // speed is specified -> set the speed
+        m_scrollSpeed = speed;
+    }
+    if ((dx != 0.0) || (dy != 0.0)) {
+        // direction is specified -> set the direction
+        m_scrollX = dx;
+        m_scrollY = dy;
+    } else if (!isScrolling()) {
+        // direction is not specified, and we're not scrolling already -> auto-scroll!
+        // detect in which direction we'd have the longest way to go and use that
+        double longestDist = 0.0;
+        for (int dir = 0;  dir < 4;  ++dir) {
+            double d = 1.0 - (dir & 2), pos, minPos;
+            if (dir & 1) { dx = d; dy = 0.0; pos = m_x0; minPos = m_minX0; }
+            else         { dx = 0.0; dy = d; pos = m_y0; minPos = m_minY0; }
+            if (minPos >= 0.0) { continue; /* can't scroll on this axis at all */ }
+            double dist = (dir & 2) ? (-pos) : (pos - minPos);
+            if (dist > longestDist) {
+                longestDist = dist;
+                m_scrollX = dx;
+                m_scrollY = dy;
+            }
+        }
+    }
+    #ifndef NDEBUG
+        printf("scroll: direction %.0f,%.0f speed %.0f\n", m_scrollX, m_scrollY, m_scrollSpeed);
+    #endif
+    if (isScrolling()) { viewCfg("fx"); }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

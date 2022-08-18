@@ -46,6 +46,7 @@ class PixelViewApp {
     double m_zoom = 1.0;
     double m_x0 = 0.0;
     double m_y0 = 0.0;
+    double m_scrollSpeed = 4.0;
 
     // image view state
     double m_screenWidth  = 0.0;
@@ -73,6 +74,11 @@ class PixelViewApp {
     void cycleViewMode(bool with1x);
     void changeZoom(double direction, double pivotX, double pivotY);
     inline void changeZoom(double direction) { changeZoom(direction, m_screenWidth * 0.5, m_screenHeight * 0.5); }
+    void startScroll(double speed, double dx, double dy);
+    inline void startScroll() { startScroll(0.0, 0.0, 0.0); }
+    inline void startScroll(double speed) { startScroll(speed, 0.0, 0.0); }
+    inline void startScroll(double dx, double dy) { startScroll(0.0, dx, dy); }
+    inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
 
     // "universal" view configuration helper function to save some typing;
     // string-controlled:

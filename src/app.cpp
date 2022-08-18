@@ -111,6 +111,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
 
     ImGui::CreateContext();
     m_io = &ImGui::GetIO();
+    m_io->IniFilename = nullptr;
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     ImGui_ImplOpenGL3_Init(nullptr);
 

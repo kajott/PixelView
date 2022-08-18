@@ -187,6 +187,15 @@ int PixelViewApp::run(int argc, char *argv[]) {
         glViewport(0, 0, int(m_io->DisplaySize.x), int(m_io->DisplaySize.y));
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // auto-scroll
+        if ((m_scrollX != 0.0) || (m_scrollY != 0.0)) {
+            m_x0 -= m_scrollX;
+            m_y0 -= m_scrollY;
+            if ((m_x0 > 0.0) || (m_x0 < m_minX0)) { m_scrollX = 0.0; }
+            if ((m_y0 > 0.0) || (m_y0 < m_minY0)) { m_scrollY = 0.0; }
+            updateView();
+        }
+
         // apply smooth transitions
         if (m_animate) {
             double sad = 0.0;
@@ -260,8 +269,8 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_KP_DIVIDE:   cycleViewMode(true);   break;
         case GLFW_KEY_KP_ADD:      changeZoom(+1.0);      break;
         case GLFW_KEY_KP_SUBTRACT: changeZoom(-1.0);      break;
-        case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  m_viewMode = vmFree;  m_animate = true;  updateView(); break;
-        case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  m_viewMode = vmFree;  m_animate = true;  updateView(); break;
+        case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  viewCfg("fsa"); break;
+        case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  viewCfg("fsa"); break;
         default:
             break;
     }
@@ -286,9 +295,7 @@ void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
                   ||  (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS))) {
         m_x0 = xpos + m_panX;
         m_y0 = ypos + m_panY;
-        m_viewMode = vmFree;
-        m_animate = false;
-        updateView(false);
+        viewCfg("fsx");
     }
 }
 
@@ -312,6 +319,23 @@ void PixelViewApp::handleResizeEvent(int width, int height) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+void PixelViewApp::viewCfg(const char* actions) {
+    if (!actions) { return; }
+    bool callUpdateView = true;
+    for (;  *actions;  ++actions) {
+        switch (*actions) {
+            case 'f': m_viewMode     = vmFree; break;
+            case 'a': m_animate      = true;   break;
+            case 'x': m_animate      = false;  break;
+            case 's': m_scrollX      =
+                      m_scrollY      = 0.0;    break;
+            case 'n': callUpdateView = false;  break;
+            default: break;
+        }
+    }
+    if (callUpdateView) { updateView(); }
+}
 
 void PixelViewApp::changeZoom(double direction, double pivotX, double pivotY) {
     if (std::fabs(direction) < 0.01) { return; }
@@ -342,8 +366,7 @@ void PixelViewApp::changeZoom(double direction, double pivotX, double pivotY) {
     }
 
     // perform the actual zoom action
-    m_viewMode = vmFree;
-    m_animate = true;
+    viewCfg("fsan");
     updateView(true, pivotX, pivotY);
 }
 
@@ -353,9 +376,7 @@ void PixelViewApp::cursorPan(double dx, double dy, int mods) {
                  :                             cursorPanSpeedNormal;
     m_x0 = std::floor(m_x0) - dx * speed;
     m_y0 = std::floor(m_y0) - dy * speed;
-    m_viewMode = vmFree;
-    m_animate = true;
-    updateView();
+    viewCfg("fsa");
 }
 
 void PixelViewApp::cycleViewMode(bool with1x) {
@@ -365,8 +386,7 @@ void PixelViewApp::cycleViewMode(bool with1x) {
     } else {
         m_viewMode = (m_viewMode == vmFit) ? vmFill : vmFit;
     }
-    m_animate = true;
-    updateView();
+    viewCfg("sa");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -402,8 +422,7 @@ void PixelViewApp::loadImage(const char* filename) {
     m_aspect = 1.0;
     m_viewMode = vmFit;
     m_x0 = m_y0 = 0.0;
-    m_animate = false;
-    updateView(false);
+    viewCfg("xs");
 }
 
 void PixelViewApp::unloadImage() {

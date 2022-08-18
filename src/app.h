@@ -54,6 +54,8 @@ class PixelViewApp {
     double m_viewHeight = 0.0;
     double m_minX0 = 0.0;
     double m_minY0 = 0.0;
+    double m_scrollX = 0.0;
+    double m_scrollY = 0.0;
     double m_minZoom = 1.0/16;
     struct Area { double m[4]; };
     Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
@@ -71,6 +73,15 @@ class PixelViewApp {
     void cycleViewMode(bool with1x);
     void changeZoom(double direction, double pivotX, double pivotY);
     inline void changeZoom(double direction) { changeZoom(direction, m_screenWidth * 0.5, m_screenHeight * 0.5); }
+
+    // "universal" view configuration helper function to save some typing;
+    // string-controlled:
+    // - 'f' = set view mode to "free pan/zoom" (vmFree)
+    // - 'a' = enable animation
+    // - 'x' = disable animation
+    // - 's' = stop scrolling
+    // - 'n' = do NOT call updateView() at the end (by default, it will call it)
+    void viewCfg(const char* actions);
 
     // UI functions
     void uiConfigWindow();

@@ -25,6 +25,7 @@ class PixelViewApp {
     // UI state
     bool m_active = true;
     bool m_animate = false;
+    bool m_showHelp = false;
     bool m_showConfig = false;
     bool m_showDemo = false;
     int m_imgWidth = 0;
@@ -90,6 +91,7 @@ class PixelViewApp {
     void viewCfg(const char* actions);
 
     // UI functions
+    void uiHelpWindow();
     void uiConfigWindow();
 
     // event handling

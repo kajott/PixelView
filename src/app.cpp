@@ -179,6 +179,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        if (m_showHelp)   { uiHelpWindow(); }
         if (m_showConfig) { uiConfigWindow(); }
         #ifndef NDEBUG
             if (m_showDemo) { ImGui::ShowDemoWindow(&m_showDemo); }
@@ -258,21 +259,25 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
     (void)scancode, (void)mods;
     if (((action != GLFW_PRESS) && (action != GLFW_REPEAT)) || m_io->WantCaptureKeyboard) { return; }
     switch (key) {
-        case GLFW_KEY_F2:
         case GLFW_KEY_TAB:
-            m_showConfig = !m_showConfig;
-            break;
-        case GLFW_KEY_F9:
-            m_showDemo = !m_showDemo;
-            break;
+        case GLFW_KEY_F2: m_showConfig = !m_showConfig; break;
+        case GLFW_KEY_F1: m_showHelp   = !m_showHelp;   break;
+        case GLFW_KEY_F9: m_showDemo   = !m_showDemo;   break;
+        case GLFW_KEY_F10:
+        case GLFW_KEY_Q: m_active = false; break;
+        case GLFW_KEY_I: if (canDoIntegerZoom()) { m_integer = !m_integer; viewCfg("a"); } break;
+        case GLFW_KEY_S: if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
+        case GLFW_KEY_Z:
+        case GLFW_KEY_Y:
+        case GLFW_KEY_KP_DIVIDE:   cycleViewMode(true);   break;
+        case GLFW_KEY_F:
+        case GLFW_KEY_KP_MULTIPLY: cycleViewMode(false);  break;
+        case GLFW_KEY_KP_ADD:      changeZoom(+1.0);      break;
+        case GLFW_KEY_KP_SUBTRACT: changeZoom(-1.0);      break;
         case GLFW_KEY_LEFT:   cursorPan(-1.0, 0.0, mods); break;
         case GLFW_KEY_RIGHT:  cursorPan(+1.0, 0.0, mods); break;
         case GLFW_KEY_UP:     cursorPan(0.0, -1.0, mods); break;
         case GLFW_KEY_DOWN:   cursorPan(0.0, +1.0, mods); break;
-        case GLFW_KEY_KP_MULTIPLY: cycleViewMode(false);  break;
-        case GLFW_KEY_KP_DIVIDE:   cycleViewMode(true);   break;
-        case GLFW_KEY_KP_ADD:      changeZoom(+1.0);      break;
-        case GLFW_KEY_KP_SUBTRACT: changeZoom(-1.0);      break;
         case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  viewCfg("fsa"); break;
         case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  viewCfg("fsa"); break;
         default:

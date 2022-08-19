@@ -6,6 +6,47 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static const char* helpText[] = {
+    "F1",                  "show/hide help window",
+    "F2 or Tab",           "show/hide display configuration window",
+    "F10 or Q",            "quit application immediately",
+    "F or Keypad *",       "toggle fit-to-screen / fill-screen mode",
+    "Z or Keypad /",       "toggle 1:1 view / fit-to-screen mode",
+    "I",                   "toggle integer scaling",
+    "Keypad +/-",          "zoom in/out",
+    "mouse wheel",         "zoom in/out",
+    "left mouse button",   "move visible area",
+    "middle mouse button", "move visible area",
+    "cursor keys",         "move visible area (normal speed)",
+    "Ctrl+cursor" ,        "move visible area (faster)",
+    "Shift+cursor",        "move visible area (slower)",
+    "Alt+cursor",          "start auto-scrolling in specified direction",
+    "S",                   "stop auto-scrolling, or start in auto-detected direction",
+    "1...9",               "set auto-scroll speed, start scrolling in auto direction",
+    "Home / End",          "move to upper-left / lower-right corner",
+    nullptr
+};
+
+void PixelViewApp::uiHelpWindow() {
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(
+        vp->WorkPos.x + 0.5f * vp->WorkSize.x,
+        vp->WorkPos.y + 0.5f * vp->WorkSize.y
+    ), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+    if (ImGui::Begin("PixelView Help", &m_showConfig, ImGuiWindowFlags_NoNavInputs)) {
+        if (ImGui::BeginTable("help", 2, ImGuiTableFlags_SizingFixedFit)) {
+            for (const char** p_help = helpText;  *p_help;  ++p_help) {
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(*p_help);
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 void PixelViewApp::uiConfigWindow() {
     bool b; float f; int i;
     if (ImGui::Begin("Display Configuration", &m_showConfig, ImGuiWindowFlags_NoNavInputs)) {

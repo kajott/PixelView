@@ -38,8 +38,7 @@ class PixelViewApp {
     double m_panY = 0.0;
     bool m_cursorVisible = true;
     double m_hideCursorAt = 0.0;
-    const char* m_fileName = nullptr;
-    const char* m_baseName = nullptr;
+    char* m_fileName = nullptr;
 
     // image view settings
     enum ViewMode {
@@ -70,7 +69,8 @@ class PixelViewApp {
     Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
     Area m_targetArea = {{2.0, -2.0, -1.0, 1.0}};
     inline bool isZoomed() const { return (m_zoom < 0.9999) || (m_zoom > 1.0001); }
-    inline bool canDoIntegerZoom() const { return (m_aspect >= 0.9999) && (m_aspect <= 1.0001); }
+    inline bool isSquarePixels() const { return (m_aspect >= 0.9999) && (m_aspect <= 1.0001); }
+    inline bool canDoIntegerZoom() const { return isSquarePixels(); }
     inline bool wantIntegerZoom() const { return m_integer && canDoIntegerZoom(); }
     inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
     struct WindowGeometry {
@@ -82,6 +82,10 @@ class PixelViewApp {
     inline bool imgValid() const { return (m_imgWidth > 0) && (m_imgHeight > 0); }
     void loadImage(const char* filename);
     void loadImage();
+    void loadConfig();
+    void loadConfig(const char* filename);
+    void saveConfig();
+    bool saveConfig(const char* filename);
     void unloadImage();
     void updateView(bool usePivot, double pivotX, double pivotY);
     inline void updateView(bool usePivot=true) { updateView(usePivot, m_screenWidth * 0.5, m_screenHeight * 0.5); }

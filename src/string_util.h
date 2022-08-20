@@ -93,6 +93,9 @@ inline char* skipWhitespace(char* s) {
 //! copy a string into a newly-malloc'd one (equivalent to strdup)
 char* copy(const char* str, int extraChars=0);
 
+//! convert a string to lowercase (in-place)
+void stringToLower(char* str);
+
 ///////////////////////////////////////////////////////////////////////////////
 
 inline bool ispathsep(char c) {

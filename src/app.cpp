@@ -45,7 +45,7 @@ static constexpr int numPresetScrollSpeeds = int(sizeof(presetScrollSpeeds) / si
 
 int PixelViewApp::run(int argc, char *argv[]) {
     if (argc > 1) {
-        m_fileName = StringUtil::copy(argv[1]);
+        m_fileName = StringUtil::copy(argv[1], 4);
         m_fullscreen = true;
     }
 
@@ -295,14 +295,16 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
     if (key != GLFW_KEY_ESCAPE) { m_escapePressed = false; }
     switch (key) {
         case GLFW_KEY_TAB:
-        case GLFW_KEY_F2: m_showConfig = !m_showConfig; updateCursor(); break;
-        case GLFW_KEY_F1: m_showHelp   = !m_showHelp;   updateCursor(); break;
-        case GLFW_KEY_F9: m_showDemo   = !m_showDemo;   updateCursor(); break;
+        case GLFW_KEY_F2:  m_showConfig = !m_showConfig; updateCursor(); break;
+        case GLFW_KEY_F1:  m_showHelp   = !m_showHelp;   updateCursor(); break;
+        case GLFW_KEY_F9:  m_showDemo   = !m_showDemo;   updateCursor(); break;
+        case GLFW_KEY_F5:  loadImage();  break;
+        case GLFW_KEY_F6:  saveConfig(); break;
         case GLFW_KEY_F11: toggleFullscreen(); break;
         case GLFW_KEY_F10:
         case GLFW_KEY_Q: m_active = false; break;
         case GLFW_KEY_I: if (canDoIntegerZoom()) { m_integer = !m_integer; viewCfg("a"); } break;
-        case GLFW_KEY_S: if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
+        case GLFW_KEY_S: if (mods & GLFW_MOD_CONTROL) { saveConfig(); } else if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
         case GLFW_KEY_T: cycleTopView(); break;
         case GLFW_KEY_Z:
         case GLFW_KEY_Y:
@@ -542,7 +544,7 @@ void PixelViewApp::updateCursor(bool startTimeout) {
 
 void PixelViewApp::loadImage(const char* filename) {
     ::free((void*)m_fileName);
-    m_fileName = StringUtil::copy(filename);
+    m_fileName = StringUtil::copy(filename, 4);
     if (!m_fileName) { unloadImage(); }
     loadImage();
 }
@@ -550,6 +552,14 @@ void PixelViewApp::loadImage(const char* filename) {
 void PixelViewApp::loadImage() {
     m_imgWidth = m_imgHeight = 0;
     m_viewWidth = m_viewHeight = 0.0;
+
+    // we might have been pointed to the .pxv metadata file instead of the
+    // associated image file, so remove the .pxv extension first
+    if (StringUtil::extractExtCode(m_fileName) == StringUtil::makeExtCode("pxv")) {
+        StringUtil::pathRemoveExt(m_fileName);
+    }
+
+    // load the actual image
     #ifndef NDEBUG
         printf("loading image: '%s'\n", m_fileName);
     #endif
@@ -575,9 +585,19 @@ void PixelViewApp::loadImage() {
     #ifndef NDEBUG
         printf("loaded image successfully (%dx%d pixels)\n", m_imgWidth, m_imgHeight);
     #endif
+
+    // load default view configuration
     m_aspect = 1.0;
     m_viewMode = vmFit;
     m_x0 = m_y0 = 0.0;
+
+    // try to load the configuration file
+    char* extStart = &m_fileName[strlen(m_fileName)];
+    strcpy(extStart, ".pxv");  // this is fine: we allocated enough extra bytes
+    loadConfig(m_fileName);
+    *extStart = '\0';
+
+    // apply new view configuration
     viewCfg("xsn");
     updateView(false);
 }
@@ -587,6 +607,13 @@ void PixelViewApp::unloadImage() {
     glBindTexture(GL_TEXTURE_2D, m_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void PixelViewApp::saveConfig() {
+    char* extStart = &m_fileName[strlen(m_fileName)];
+    strcpy(extStart, ".pxv");  // this is fine: we allocated enough extra bytes
+    saveConfig(m_fileName);
+    *extStart = '\0';
 }
 
 ////////////////////////////////////////////////////////////////////////////////

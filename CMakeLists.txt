@@ -68,6 +68,7 @@ endif ()
 add_executable (pixelview
     src/app.cpp
     src/app_ui.cpp
+    src/app_cfgfile.cpp
     src/gl_util.cpp
     src/string_util.cpp
 )

@@ -124,6 +124,13 @@ char* copy(const char* str, int extraChars) {
     return res;
 }
 
+void stringToLower(char* str) {
+    if (!str) { return; }
+    for (;  *str;  ++str) {
+        *str = ce_tolower(*str);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int pathBaseNameIndex(const char* path) {

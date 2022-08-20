@@ -25,6 +25,7 @@ static const char* helpText[] = {
     "S",                   "stop auto-scrolling, or start in auto-detected direction",
     "1...9",               "set auto-scroll speed, start scrolling in auto direction",
     "Home / End",          "move to upper-left / lower-right corner",
+    "Ctrl+S or F6",        "save view settings for the current file",
     nullptr
 };
 

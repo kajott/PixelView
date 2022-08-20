@@ -24,6 +24,7 @@ class PixelViewApp {
 
     // UI state
     bool m_fullscreen = false;
+    bool m_escapePressed = false;
     bool m_active = true;
     bool m_animate = false;
     bool m_showHelp = false;

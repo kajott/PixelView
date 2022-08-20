@@ -281,6 +281,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
 void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
     (void)scancode, (void)mods;
     if (((action != GLFW_PRESS) && (action != GLFW_REPEAT)) || m_io->WantCaptureKeyboard) { return; }
+    if (key != GLFW_KEY_ESCAPE) { m_escapePressed = false; }
     switch (key) {
         case GLFW_KEY_TAB:
         case GLFW_KEY_F2: m_showConfig = !m_showConfig; break;
@@ -304,6 +305,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_DOWN:   cursorPan(0.0, +1.0, mods); break;
         case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  viewCfg("fsa"); break;
         case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  viewCfg("fsa"); break;
+        case GLFW_KEY_ESCAPE: if (m_escapePressed) { m_active = false; } else { m_escapePressed = true; m_scrollX = m_scrollY = 0.0; viewCfg("x"); } break;
         default:
             if ((key >= GLFW_KEY_1) && (key < (GLFW_KEY_1 + numPresetScrollSpeeds))) {
                 startScroll(presetScrollSpeeds[key - GLFW_KEY_1]);
@@ -325,6 +327,7 @@ void PixelViewApp::handleMouseButtonEvent(int button, int action, int mods) {
         m_scrollX = m_scrollY = 0.0;
         m_panning = true;
     }
+    m_escapePressed = false;
 }
 
 void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
@@ -343,11 +346,13 @@ void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     double ypos = m_io->DisplaySize.y * 0.5;
     glfwGetCursorPos(m_window, &xpos, &ypos);
     changeZoom(yoffset, xpos, ypos);
+    m_escapePressed = false;
 }
 
 void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
     if ((path_count < 1) || !paths || !paths[0] || !paths[0][0]) { return; }
     loadImage(paths[0]);
+    m_escapePressed = false;
 }
 
 void PixelViewApp::handleResizeEvent(int width, int height) {

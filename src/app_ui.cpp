@@ -9,7 +9,7 @@
 static const char* helpText[] = {
     "F1",                  "show/hide help window",
     "F2 or Tab",           "show/hide display configuration window",
-    "F10 or Q",            "quit application immediately",
+    "F10 or Q or 2x Esc",  "quit application immediately",
     "F or Keypad *",       "toggle fit-to-screen / fill-screen mode",
     "Z or Keypad /",       "toggle 1:1 view / fit-to-screen mode",
     "I",                   "toggle integer scaling",

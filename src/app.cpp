@@ -37,6 +37,7 @@ static constexpr double animationSpeed       =    0.125;
 static constexpr double cursorPanSpeedSlow   =    8.0;  // pixels per keypress (with Shift)
 static constexpr double cursorPanSpeedNormal =   64.0;  // pixels per keypress
 static constexpr double cursorPanSpeedFast   =  512.0;  // pixels per keypress (with Ctrl)
+static constexpr double cursorHideDelay      =    0.5;  // mouse cursor hide delay (seconds)
 
 static const double presetScrollSpeeds[] = { 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0 };
 static constexpr int numPresetScrollSpeeds = int(sizeof(presetScrollSpeeds) / sizeof(*presetScrollSpeeds));
@@ -189,6 +190,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
 
     // initialize screen geometry and load document
     updateScreenSize();
+    updateCursor();
     if (m_fileName) {
         loadImage();
     }
@@ -197,7 +199,16 @@ int PixelViewApp::run(int argc, char *argv[]) {
     while (m_active && !glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
 
+        // hide the cursor
+        if ((m_hideCursorAt > 0.0) && (glfwGetTime() > m_hideCursorAt) && !m_panning) {
+            updateCursor();
+            m_hideCursorAt = 0.0;
+        }
+
         // process the UI
+        if (!m_cursorVisible) {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        }
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -284,9 +295,9 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
     if (key != GLFW_KEY_ESCAPE) { m_escapePressed = false; }
     switch (key) {
         case GLFW_KEY_TAB:
-        case GLFW_KEY_F2: m_showConfig = !m_showConfig; break;
-        case GLFW_KEY_F1: m_showHelp   = !m_showHelp;   break;
-        case GLFW_KEY_F9: m_showDemo   = !m_showDemo;   break;
+        case GLFW_KEY_F2: m_showConfig = !m_showConfig; updateCursor(); break;
+        case GLFW_KEY_F1: m_showHelp   = !m_showHelp;   updateCursor(); break;
+        case GLFW_KEY_F9: m_showDemo   = !m_showDemo;   updateCursor(); break;
         case GLFW_KEY_F11: toggleFullscreen(); break;
         case GLFW_KEY_F10:
         case GLFW_KEY_Q: m_active = false; break;
@@ -331,6 +342,7 @@ void PixelViewApp::handleMouseButtonEvent(int button, int action, int mods) {
 }
 
 void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
+    updateCursor(true);
     if (m_panning && ((glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT)   == GLFW_PRESS)
                   ||  (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS))) {
         m_x0 = xpos + m_panX;
@@ -342,6 +354,7 @@ void PixelViewApp::handleCursorPosEvent(double xpos, double ypos) {
 void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     (void)xoffset;
     if (m_io->WantCaptureMouse) { return; }
+    updateCursor(true);
     double xpos = m_io->DisplaySize.x * 0.5;
     double ypos = m_io->DisplaySize.y * 0.5;
     glfwGetCursorPos(m_window, &xpos, &ypos);
@@ -494,9 +507,22 @@ void PixelViewApp::toggleFullscreen() {
         glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
         m_fullscreen = true;
     }
+    updateCursor();
     glfwSwapInterval(1);
     updateScreenSize();
     viewCfg("x");
+}
+
+void PixelViewApp::updateCursor(bool startTimeout) {
+    if (!m_fullscreen || anyUIvisible()) {
+        m_hideCursorAt = 0.0;
+        m_cursorVisible = true;
+    } else if (startTimeout) {
+        m_cursorVisible = true;
+        m_hideCursorAt = glfwGetTime() + cursorHideDelay;
+    } else {
+        m_cursorVisible = false;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

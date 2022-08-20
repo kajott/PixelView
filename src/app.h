@@ -30,11 +30,14 @@ class PixelViewApp {
     bool m_showHelp = false;
     bool m_showConfig = false;
     bool m_showDemo = false;
+    inline bool anyUIvisible() const { return m_showHelp || m_showConfig || m_showDemo; }
     int m_imgWidth = 0;
     int m_imgHeight = 0;
     bool m_panning = false;
     double m_panX = 0.0;
     double m_panY = 0.0;
+    bool m_cursorVisible = true;
+    double m_hideCursorAt = 0.0;
     const char* m_fileName = nullptr;
     const char* m_baseName = nullptr;
 
@@ -91,6 +94,7 @@ class PixelViewApp {
     inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
     void updateScreenSize();
     void toggleFullscreen();
+    void updateCursor(bool startTimeout=false);
 
     // "universal" view configuration helper function to save some typing;
     // string-controlled:

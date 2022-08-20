@@ -69,8 +69,10 @@ class PixelViewApp {
     struct Area { double m[4]; };
     Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
     Area m_targetArea = {{2.0, -2.0, -1.0, 1.0}};
+    inline bool isZoomed() const { return (m_zoom < 0.9999) || (m_zoom > 1.0001); }
     inline bool canDoIntegerZoom() const { return (m_aspect >= 0.9999) && (m_aspect <= 1.0001); }
     inline bool wantIntegerZoom() const { return m_integer && canDoIntegerZoom(); }
+    inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
     struct WindowGeometry {
         int xpos,  ypos;
         int width, height;
@@ -85,13 +87,13 @@ class PixelViewApp {
     inline void updateView(bool usePivot=true) { updateView(usePivot, m_screenWidth * 0.5, m_screenHeight * 0.5); }
     void cursorPan(double dx, double dy, int mods);
     void cycleViewMode(bool with1x);
+    void cycleTopView();
     void changeZoom(double direction, double pivotX, double pivotY);
     inline void changeZoom(double direction) { changeZoom(direction, m_screenWidth * 0.5, m_screenHeight * 0.5); }
     void startScroll(double speed, double dx, double dy);
     inline void startScroll() { startScroll(0.0, 0.0, 0.0); }
     inline void startScroll(double speed) { startScroll(speed, 0.0, 0.0); }
     inline void startScroll(double dx, double dy) { startScroll(0.0, dx, dy); }
-    inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
     void updateScreenSize();
     void toggleFullscreen();
     void updateCursor(bool startTimeout=false);

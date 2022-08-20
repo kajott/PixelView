@@ -303,6 +303,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_Q: m_active = false; break;
         case GLFW_KEY_I: if (canDoIntegerZoom()) { m_integer = !m_integer; viewCfg("a"); } break;
         case GLFW_KEY_S: if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
+        case GLFW_KEY_T: cycleTopView(); break;
         case GLFW_KEY_Z:
         case GLFW_KEY_Y:
         case GLFW_KEY_KP_DIVIDE:   cycleViewMode(true);   break;
@@ -440,13 +441,25 @@ void PixelViewApp::cursorPan(double dx, double dy, int mods) {
 }
 
 void PixelViewApp::cycleViewMode(bool with1x) {
-    if (with1x && ((m_viewMode == vmFill) || (true && (std::fabs(m_zoom - 1.0) > 0.03125)))) {
+    if (with1x && ((m_viewMode == vmFill) || isZoomed())) {
         m_zoom = 1.0;
         m_viewMode = vmFree;
     } else {
         m_viewMode = (m_viewMode == vmFit) ? vmFill : vmFit;
     }
     viewCfg("sa");
+}
+
+void PixelViewApp::cycleTopView() {
+    if (isZoomed()) { 
+        m_zoom = 1.0;
+    } else {
+        m_viewMode = vmFill;
+        updateView();  // just to compute the zoom ratio
+    }
+    m_x0 = m_y0 = 0.0;
+    viewCfg("fsan");
+    updateView(false);
 }
 
 void PixelViewApp::startScroll(double speed, double dx, double dy) {
@@ -565,7 +578,8 @@ void PixelViewApp::loadImage() {
     m_aspect = 1.0;
     m_viewMode = vmFit;
     m_x0 = m_y0 = 0.0;
-    viewCfg("xs");
+    viewCfg("xsn");
+    updateView(false);
 }
 
 void PixelViewApp::unloadImage() {

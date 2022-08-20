@@ -12,6 +12,7 @@ static const char* helpText[] = {
     "F10 or Q or 2x Esc",  "quit application immediately",
     "F or Keypad *",       "toggle fit-to-screen / fill-screen mode",
     "Z or Keypad /",       "toggle 1:1 view / fit-to-screen mode",
+    "T",                   "set 1:1 view / fill-screen and show top-left corner",
     "I",                   "toggle integer scaling",
     "Keypad +/-",          "zoom in/out",
     "mouse wheel",         "zoom in/out",

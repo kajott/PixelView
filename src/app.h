@@ -23,6 +23,7 @@ class PixelViewApp {
     GLint m_locSize;
 
     // UI state
+    bool m_fullscreen = false;
     bool m_active = true;
     bool m_animate = false;
     bool m_showHelp = false;
@@ -33,6 +34,8 @@ class PixelViewApp {
     bool m_panning = false;
     double m_panX = 0.0;
     double m_panY = 0.0;
+    const char* m_fileName = nullptr;
+    const char* m_baseName = nullptr;
 
     // image view settings
     enum ViewMode {
@@ -64,10 +67,15 @@ class PixelViewApp {
     Area m_targetArea = {{2.0, -2.0, -1.0, 1.0}};
     inline bool canDoIntegerZoom() const { return (m_aspect >= 0.9999) && (m_aspect <= 1.0001); }
     inline bool wantIntegerZoom() const { return m_integer && canDoIntegerZoom(); }
+    struct WindowGeometry {
+        int xpos,  ypos;
+        int width, height;
+    } m_windowGeometry;
 
     // main functions
     inline bool imgValid() const { return (m_imgWidth > 0) && (m_imgHeight > 0); }
     void loadImage(const char* filename);
+    void loadImage();
     void unloadImage();
     void updateView(bool usePivot, double pivotX, double pivotY);
     inline void updateView(bool usePivot=true) { updateView(usePivot, m_screenWidth * 0.5, m_screenHeight * 0.5); }
@@ -80,6 +88,8 @@ class PixelViewApp {
     inline void startScroll(double speed) { startScroll(speed, 0.0, 0.0); }
     inline void startScroll(double dx, double dy) { startScroll(0.0, dx, dy); }
     inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
+    void updateScreenSize();
+    void toggleFullscreen();
 
     // "universal" view configuration helper function to save some typing;
     // string-controlled:

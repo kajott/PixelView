@@ -30,18 +30,23 @@
     //#define DEBUG_ANIMATION
 #endif
 
-static constexpr double zoomStepSize         = 1.4142135623730951;  // sqrt(2)
-static constexpr double animationSpeed       = 0.125;
-static constexpr double cursorPanSpeedSlow   = 8.0;    // pixels per keypress (with Shift)
-static constexpr double cursorPanSpeedNormal = 64.0;   // pixels per keypress
-static constexpr double cursorPanSpeedFast   = 512.0;  // pixels per keypress (with Ctrl)
+static constexpr int    defaultWindowWidth   = 1024;
+static constexpr int    defaultWindowHeight  =  768;
+static constexpr double zoomStepSize         =    1.4142135623730951;  // sqrt(2)
+static constexpr double animationSpeed       =    0.125;
+static constexpr double cursorPanSpeedSlow   =    8.0;  // pixels per keypress (with Shift)
+static constexpr double cursorPanSpeedNormal =   64.0;  // pixels per keypress
+static constexpr double cursorPanSpeedFast   =  512.0;  // pixels per keypress (with Ctrl)
 
 static const double presetScrollSpeeds[] = { 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0 };
 static constexpr int numPresetScrollSpeeds = int(sizeof(presetScrollSpeeds) / sizeof(*presetScrollSpeeds));
 
 
 int PixelViewApp::run(int argc, char *argv[]) {
-    (void)argc, (void)argv;
+    if (argc > 1) {
+        m_fileName = StringUtil::copy(argv[1]);
+        m_fullscreen = true;
+    }
 
     if (!glfwInit()) {
         const char* err = "unknown error";
@@ -50,9 +55,12 @@ int PixelViewApp::run(int argc, char *argv[]) {
         return 1;
     }
 
-    glfwWindowHint(GLFW_RED_BITS,     8);
-    glfwWindowHint(GLFW_GREEN_BITS,   8);
-    glfwWindowHint(GLFW_BLUE_BITS,    8);
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+    glfwWindowHint(GLFW_RED_BITS,     mode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS,   mode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS,    mode->blueBits);
     glfwWindowHint(GLFW_ALPHA_BITS,   8);
     glfwWindowHint(GLFW_DEPTH_BITS,   0);
     glfwWindowHint(GLFW_STENCIL_BITS, 0);
@@ -66,9 +74,11 @@ int PixelViewApp::run(int argc, char *argv[]) {
     #endif
 
     m_window = glfwCreateWindow(
-        1024, 768,
+        m_fullscreen ? mode->width  : defaultWindowWidth,
+        m_fullscreen ? mode->height : defaultWindowHeight,
         "PixelView",
-        nullptr, nullptr);
+        m_fullscreen ? monitor : nullptr,
+        nullptr);
     if (m_window == nullptr) {
         const char* err = "unknown error";
         glfwGetError(&err);
@@ -85,7 +95,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleCursorPosEvent(xpos, ypos); });
     glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xoffset, double yoffset)
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleScrollEvent(xoffset, yoffset); });
-    glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
+    glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleResizeEvent(width, height); });
     glfwSetDropCallback(m_window, [](GLFWwindow* window, int path_count, const char* paths[])
         { static_cast<PixelViewApp*>(glfwGetWindowUserPointer(window))->handleDropEvent(path_count, paths); });
@@ -171,6 +181,18 @@ int PixelViewApp::run(int argc, char *argv[]) {
         m_locSize = glGetUniformLocation(m_prog, "uSize");
     }
 
+    // set a default window geometry when switching back from fullscreen
+    m_windowGeometry.width  = defaultWindowWidth;
+    m_windowGeometry.height = defaultWindowHeight;
+    m_windowGeometry.xpos   = (mode->width  - defaultWindowWidth)  >> 1;
+    m_windowGeometry.ypos   = (mode->height - defaultWindowHeight) >> 1;
+
+    // initialize screen geometry and load document
+    updateScreenSize();
+    if (m_fileName) {
+        loadImage();
+    }
+
     // main loop
     while (m_active && !glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
@@ -239,6 +261,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
     #ifndef NDEBUG
         fprintf(stderr, "exiting ...\n");
     #endif
+    ::free((void*)m_fileName);
     glUseProgram(0);
     m_prog.free();
     GLutil::done();
@@ -263,6 +286,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_F2: m_showConfig = !m_showConfig; break;
         case GLFW_KEY_F1: m_showHelp   = !m_showHelp;   break;
         case GLFW_KEY_F9: m_showDemo   = !m_showDemo;   break;
+        case GLFW_KEY_F11: toggleFullscreen(); break;
         case GLFW_KEY_F10:
         case GLFW_KEY_Q: m_active = false; break;
         case GLFW_KEY_I: if (canDoIntegerZoom()) { m_integer = !m_integer; viewCfg("a"); } break;
@@ -438,15 +462,53 @@ void PixelViewApp::startScroll(double speed, double dx, double dy) {
     if (isScrolling()) { viewCfg("fx"); }
 }
 
+void PixelViewApp::updateScreenSize() {
+    int w = 0, h = 0;
+    glfwGetFramebufferSize(m_window, &w, &h);
+    m_screenWidth  = w;
+    m_screenHeight = h;
+}
+
+void PixelViewApp::toggleFullscreen() {
+    if (m_fullscreen) {
+        // leave fullscreen mode -> restore old window settings
+        glfwSetWindowMonitor(m_window, nullptr,
+            m_windowGeometry.xpos,
+            m_windowGeometry.ypos,
+            m_windowGeometry.width,
+            m_windowGeometry.height,
+            GLFW_DONT_CARE);
+        m_fullscreen = false;
+    } else {
+        // enter fullscreen mode -> save old window geometry and switch to FS
+        glfwGetWindowSize(m_window, &m_windowGeometry.width, &m_windowGeometry.height);
+        glfwGetWindowPos(m_window, &m_windowGeometry.xpos, &m_windowGeometry.ypos);
+        GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        m_fullscreen = true;
+    }
+    glfwSwapInterval(1);
+    updateScreenSize();
+    viewCfg("x");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void PixelViewApp::loadImage(const char* filename) {
+    ::free((void*)m_fileName);
+    m_fileName = StringUtil::copy(filename);
+    if (!m_fileName) { unloadImage(); }
+    loadImage();
+}
+
+void PixelViewApp::loadImage() {
     m_imgWidth = m_imgHeight = 0;
     m_viewWidth = m_viewHeight = 0.0;
     #ifndef NDEBUG
-        printf("loading image: '%s'\n", filename);
+        printf("loading image: '%s'\n", m_fileName);
     #endif
-    void* data = stbi_load(filename, &m_imgWidth, &m_imgHeight, nullptr, 3);
+    void* data = stbi_load(m_fileName, &m_imgWidth, &m_imgHeight, nullptr, 3);
     if (!data) {
         #ifndef NDEBUG
             printf("image loading failed\n");
@@ -487,10 +549,6 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     if (!imgValid()) {
         return;  // no image loaded
     }
-
-    // initialize screen size on very first call
-    if (m_screenWidth  < 1.0) { m_screenWidth  = m_io->DisplaySize.x; }
-    if (m_screenHeight < 1.0) { m_screenHeight = m_io->DisplaySize.y; }
 
     // compute pivot position into relative coordinates
     double pivotRelX = (m_viewWidth  > 1.0) ? ((pivotX - m_x0) / m_viewWidth)  : 0.5;

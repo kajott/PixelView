@@ -341,6 +341,7 @@ void PixelViewApp::handleScrollEvent(double xoffset, double yoffset) {
     if (m_io->WantCaptureMouse) { return; }
     double xpos = m_io->DisplaySize.x * 0.5;
     double ypos = m_io->DisplaySize.y * 0.5;
+    glfwGetCursorPos(m_window, &xpos, &ypos);
     changeZoom(yoffset, xpos, ypos);
 }
 

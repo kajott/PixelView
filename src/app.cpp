@@ -792,10 +792,3 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     m_targetArea.m[2] =  2.0 * (std::floor(m_x0) / m_screenWidth)  - 1.0;
     m_targetArea.m[3] = -2.0 * (std::floor(m_y0) / m_screenHeight) + 1.0;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-int main(int argc, char* argv[]) {
-    static PixelViewApp app;
-    return app.run(argc, argv);
-}

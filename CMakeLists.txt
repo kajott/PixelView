@@ -66,6 +66,7 @@ endif ()
 ###############################################################################
 
 add_executable (pixelview
+    src/main.cpp
     src/app.cpp
     src/app_ui.cpp
     src/app_cfgfile.cpp
@@ -83,11 +84,14 @@ if (WIN32)
         src/file_util_win32.cpp
         src/utf8.manifest
     )
-    # no console in Win32 Release builds
-    # (disabled for now -- we need a WinMain() function first!)
-    #if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    #    set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
-    #endif ()
+    # no console in Win32 Release builds (either via Ninja or MSBuild)
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+        set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
+    endif ()
+    set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE $<CONFIG:Release>)
+    # some CMake versions seem to be buggy and do *not* set the property properly;
+    # in this case, uncomment the following line, build, and revert it afterwards:
+    #set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
 else ()
     target_sources (pixelview PRIVATE
         src/file_util_posix.cpp

@@ -26,6 +26,9 @@ static const char* helpText[] = {
     "1...9",               "set auto-scroll speed, start scrolling in auto direction",
     "Home / End",          "move to upper-left / lower-right corner",
     "Ctrl+S or F6",        "save view settings for the current file",
+    "Explorer Drag&Drop",  "load another image",
+    "PageUp / PageDown",   "load previous / next image file from the current directory",
+    "Ctrl+Home / Ctrl+End","load first / last image file in the current directory",
     nullptr
 };
 

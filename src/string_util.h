@@ -96,6 +96,9 @@ char* copy(const char* str, int extraChars=0);
 //! convert a string to lowercase (in-place)
 void stringToLower(char* str);
 
+//! case-insensitive strcmp
+int compareCI(const char* a, const char *b);
+
 ///////////////////////////////////////////////////////////////////////////////
 
 inline bool ispathsep(char c) {

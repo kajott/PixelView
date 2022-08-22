@@ -131,6 +131,15 @@ void stringToLower(char* str) {
     }
 }
 
+int compareCI(const char* a, const char *b) {
+    if (!a || !b) { return a ? (+1) : b ? (-1) : 0; }
+    for (;;) {
+        int res = ce_tolower(*a) - ce_tolower(*b);
+        if (res || !*a || !*b) { return (res > 0) ? (+1) : (res < 0) ? (-1) : 0; }
+        ++a; ++b;
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int pathBaseNameIndex(const char* path) {

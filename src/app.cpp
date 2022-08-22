@@ -22,6 +22,7 @@
 #include "stb_image.h"
 
 #include "string_util.h"
+#include "file_util.h"
 
 #include "app.h"
 
@@ -41,6 +42,22 @@ static constexpr double cursorHideDelay      =    0.5;  // mouse cursor hide del
 
 static const double presetScrollSpeeds[] = { 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0 };
 static constexpr int numPresetScrollSpeeds = int(sizeof(presetScrollSpeeds) / sizeof(*presetScrollSpeeds));
+
+static const uint32_t validFileExts[] = {
+    // file extensions for formats that are supported by stb_image
+    StringUtil::makeExtCode("jpg"),
+    StringUtil::makeExtCode("jpeg"),
+    StringUtil::makeExtCode("png"),
+    StringUtil::makeExtCode("bmp"),
+    StringUtil::makeExtCode("tga"),
+    StringUtil::makeExtCode("psd"),
+    StringUtil::makeExtCode("gif"),
+    StringUtil::makeExtCode("hdr"),
+    StringUtil::makeExtCode("pic"),
+    StringUtil::makeExtCode("ppm"),
+    StringUtil::makeExtCode("pgm"),
+    0
+};
 
 
 int PixelViewApp::run(int argc, char *argv[]) {
@@ -290,9 +307,10 @@ int PixelViewApp::run(int argc, char *argv[]) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
-    (void)scancode, (void)mods;
+    (void)scancode;
     if (((action != GLFW_PRESS) && (action != GLFW_REPEAT)) || m_io->WantCaptureKeyboard) { return; }
     if (key != GLFW_KEY_ESCAPE) { m_escapePressed = false; }
+    bool ctrl = !!(mods & GLFW_MOD_CONTROL);
     switch (key) {
         case GLFW_KEY_TAB:
         case GLFW_KEY_F2:  m_showConfig = !m_showConfig; updateCursor(); break;
@@ -304,7 +322,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_F10:
         case GLFW_KEY_Q: m_active = false; break;
         case GLFW_KEY_I: if (canDoIntegerZoom()) { m_integer = !m_integer; viewCfg("a"); } break;
-        case GLFW_KEY_S: if (mods & GLFW_MOD_CONTROL) { saveConfig(); } else if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
+        case GLFW_KEY_S: if (ctrl) { saveConfig(); } else if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
         case GLFW_KEY_T: cycleTopView(); break;
         case GLFW_KEY_Z:
         case GLFW_KEY_Y:
@@ -317,8 +335,10 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_RIGHT:  cursorPan(+1.0, 0.0, mods); break;
         case GLFW_KEY_UP:     cursorPan(0.0, -1.0, mods); break;
         case GLFW_KEY_DOWN:   cursorPan(0.0, +1.0, mods); break;
-        case GLFW_KEY_HOME: m_x0 =     0.0;  m_y0 =     0.0;  viewCfg("fsa"); break;
-        case GLFW_KEY_END:  m_x0 = m_minX0;  m_y0 = m_minY0;  viewCfg("fsa"); break;
+        case GLFW_KEY_HOME: if (ctrl) { loadSibling(true, -1); } else { m_x0 =     0.0;  m_y0 =     0.0;  viewCfg("fsa"); } break;
+        case GLFW_KEY_END:  if (ctrl) { loadSibling(true, +1); } else { m_x0 = m_minX0;  m_y0 = m_minY0;  viewCfg("fsa"); } break;
+        case GLFW_KEY_PAGE_UP:   loadSibling(false, -1); break;
+        case GLFW_KEY_PAGE_DOWN: loadSibling(false, +1); break;
         case GLFW_KEY_ESCAPE: if (m_escapePressed) { m_active = false; } else { m_escapePressed = true; m_scrollX = m_scrollY = 0.0; viewCfg("x"); } break;
         default:
             if ((key >= GLFW_KEY_1) && (key < (GLFW_KEY_1 + numPresetScrollSpeeds))) {
@@ -614,6 +634,63 @@ void PixelViewApp::saveConfig() {
     strcpy(extStart, ".pxv");  // this is fine: we allocated enough extra bytes
     saveConfig(m_fileName);
     *extStart = '\0';
+}
+
+void PixelViewApp::loadSibling(bool absolute, int order) {
+    const char* dirName = StringUtil::pathDirName(m_fileName);
+    if (!dirName) { return; }
+    #ifndef NDEBUG
+        printf("searching for sibling file in directory '%s' ...\n", dirName);
+    #endif
+
+    FileUtil::Directory dir(dirName);
+    if (!dir.good()) {
+        #ifndef NDEBUG
+            printf("reading directory failed.\n");
+        #endif
+        return;
+    }
+
+    const char* foundItem = nullptr;
+    auto compareName = [&] (const char* against) -> int {
+        return StringUtil::compareCI(dir.currentItemName(), StringUtil::pathBaseName(against));
+    };
+
+    while (dir.nextNonDot()) {
+        bool ok = !dir.currentItemIsDir();
+        if (ok) {
+            uint32_t ext = StringUtil::extractExtCode(dir.currentItemName());
+            ok = false;
+            for (const uint32_t *e = validFileExts;  *e;  ++e) {
+                if (*e == ext) { ok = true; break; }
+            }
+        }
+        if (ok && (compareName(m_fileName) != order)) {
+            ok = false;  // item is on the "wrong" side of the current file
+        }
+        if (ok && foundItem) {
+            ok = (compareName(foundItem) == (absolute ? order : -order));
+        }
+        if (ok) {
+            ::free((void*)foundItem);
+            foundItem = StringUtil::pathJoin(dirName, dir.currentItemName());
+        }
+    }
+    dir.close();
+    ::free((void*)dirName);
+
+    if (!foundItem) {
+        #ifndef NDEBUG
+            printf("no suitable sibling found.\n");
+        #endif
+        return;
+    }
+    #ifndef NDEBUG
+        printf("sibling found: '%s'\n", foundItem);
+    #endif
+
+    loadImage(foundItem);
+    ::free((void*)foundItem);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

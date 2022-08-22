@@ -124,6 +124,17 @@ char* copy(const char* str, int extraChars) {
     return res;
 }
 
+char* concat(const char* a, const char* b, int extraChars) {
+    if (!a || !a[0]) { return copy(b, extraChars); }
+    if (!b || !b[0]) { return copy(a, extraChars); }
+    size_t alen = strlen(a);
+    char *res = static_cast<char*>(malloc(alen + strlen(b) + size_t(extraChars) + 1u));
+    if (!res) { return nullptr; }
+    strcpy(res, a);
+    strcpy(&res[alen], b);
+    return res;
+}
+
 void stringToLower(char* str) {
     if (!str) { return; }
     for (;  *str;  ++str) {

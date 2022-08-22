@@ -79,14 +79,19 @@ target_link_libraries (pixelview pv_thirdparty)
 
 # platform-dependent additional sources and options
 if (WIN32)
-    target_sources (pixelview PRIVATE src/file_util_win32.cpp)
+    target_sources (pixelview PRIVATE
+        src/file_util_win32.cpp
+        src/utf8.manifest
+    )
     # no console in Win32 Release builds
     # (disabled for now -- we need a WinMain() function first!)
     #if (CMAKE_BUILD_TYPE STREQUAL "Release")
     #    set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
     #endif ()
 else ()
-    target_sources (pixelview PRIVATE src/file_util_posix.cpp)
+    target_sources (pixelview PRIVATE
+        src/file_util_posix.cpp
+    )
     # Linux builds *require* (p)threads, otherwise very weird things can happen
     set (THREADS_PREFER_PTHREAD_FLAG TRUE)
     find_package (Threads REQUIRED)

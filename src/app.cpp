@@ -579,6 +579,11 @@ void PixelViewApp::loadImage() {
         StringUtil::pathRemoveExt(m_fileName);
     }
 
+    // change the window title
+    const char* title = StringUtil::concat("PixelView - ", StringUtil::pathBaseName(m_fileName));
+    glfwSetWindowTitle(m_window, title);
+    ::free((void*)title);
+
     // load the actual image
     #ifndef NDEBUG
         printf("loading image: '%s'\n", m_fileName);

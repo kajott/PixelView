@@ -7,12 +7,12 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Get CMake and Ninja
+      - name: Install CMake
         uses: lukka/get-cmake@latest
       - name: Win32 Build
         run: cmake -S . -B _build -DCMAKE_BUILD_TYPE=Release -DFORCE_NO_CONSOLE=1 && cmake --build _build --config Release
       - name: Archive Win32 Package
         uses: actions/upload-artifact@v2
         with:
-          name: packages
+          name: pixelview_win32
           path: _build/Release/pixelview.exe

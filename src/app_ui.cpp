@@ -41,7 +41,7 @@ void PixelViewApp::uiHelpWindow() {
         vp->WorkPos.x + 0.5f * vp->WorkSize.x,
         vp->WorkPos.y + 0.5f * vp->WorkSize.y
     ), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-    if (ImGui::Begin("PixelView Help", &m_showConfig, ImGuiWindowFlags_NoNavInputs)) {
+    if (ImGui::Begin("PixelView Help", &m_showHelp, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoCollapse)) {
         if (ImGui::BeginTable("help", 2, ImGuiTableFlags_SizingFixedFit)) {
             for (const char** p_help = helpText;  *p_help;  ++p_help) {
                 ImGui::TableNextColumn();

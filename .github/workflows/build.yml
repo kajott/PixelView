@@ -1,0 +1,18 @@
+name: Automated Builds
+on: [push]
+jobs:
+  win32-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Get CMake and Ninja
+        uses: lukka/get-cmake@latest
+      - name: Win32 Build
+        run: cmake -S . -B _build -DCMAKE_BUILD_TYPE=Release -DFORCE_NO_CONSOLE=1 && cmake --build _build --config Release
+      - name: Archive Win32 Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: _build/Release/pixelview.exe

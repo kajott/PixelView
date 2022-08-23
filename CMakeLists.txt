@@ -22,6 +22,11 @@ if (MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif ()
 
+# add an option to force creating a binary that does not open a console window
+if (MSVC)
+    option (FORCE_NO_CONSOLE "force building a Windows-mode executable" OFF)
+endif ()
+
 
 ###############################################################################
 ## THIRD-PARTY LIBRARIES                                                    ##
@@ -84,14 +89,14 @@ if (WIN32)
         src/file_util_win32.cpp
         src/utf8.manifest
     )
-    # no console in Win32 Release builds (either via Ninja or MSBuild)
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    # no console in Win32 Release builds (using any of three methods)
+    if (FORCE_NO_CONSOLE)
         set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
+    elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+        set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
+    elseif (MSVC)
+        set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE $<CONFIG:Release>)
     endif ()
-    set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE $<CONFIG:Release>)
-    # some CMake versions seem to be buggy and do *not* set the property properly;
-    # in this case, uncomment the following line, build, and revert it afterwards:
-    #set_target_properties (pixelview PROPERTIES WIN32_EXECUTABLE ON)
 else ()
     target_sources (pixelview PRIVATE
         src/file_util_posix.cpp

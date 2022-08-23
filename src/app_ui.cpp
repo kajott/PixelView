@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021-2022 Martin J. Fiedler <keyj@emphy.de>
+// SPDX-License-Identifier: MIT
+
 #include <algorithm>
 
 #include "imgui.h"

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021-2022 Martin J. Fiedler <keyj@emphy.de>
+// SPDX-License-Identifier: MIT
+
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>

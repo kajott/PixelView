@@ -84,10 +84,11 @@ void PixelViewApp::loadConfig(const char* filename) {
 
         // parse the actual line
         if (!strcmp(key, "mode")) {
-                 if (!strcmp(value, "free")) { m_viewMode = vmFree; }
-            else if (!strcmp(value, "fit"))  { m_viewMode = vmFit;  }
-            else if (!strcmp(value, "fill")) { m_viewMode = vmFill; }
-            else                             { invalidValue();      }
+                 if (!strcmp(value, "free"))  { m_viewMode = vmFree;  }
+            else if (!strcmp(value, "fit"))   { m_viewMode = vmFit;   }
+            else if (!strcmp(value, "fill"))  { m_viewMode = vmFill;  }
+            else if (!strcmp(value, "panel")) { m_viewMode = vmPanel; }
+            else                              { invalidValue();       }
         }
         if (!strcmp(key, "integer")) {
                  if (!strcmp(value, "yes") || !strcmp(value, "true")  || !strcmp(value, "on")  || (isFloat && (fval != 0.0))) { m_integer = true;  }
@@ -136,7 +137,7 @@ bool PixelViewApp::saveConfig(const char* filename) {
     if ((m_maxCrop > 0.0) || ((m_viewMode == vmFill) && m_integer)) {
         fprintf(f, "maxcrop %.0f\n", m_maxCrop * 100.0);
     }
-    fprintf(f, "mode %s\n", (m_viewMode == vmFree) ? "free" : (m_viewMode == vmFill) ? "fill" : "fit");
+    fprintf(f, "mode %s\n", (m_viewMode == vmFree) ? "free" : (m_viewMode == vmPanel) ? "panel" : (m_viewMode == vmFill) ? "fill" : "fit");
     if (canDoIntegerZoom()) {
         fprintf(f, "integer %s\n", m_integer ? "yes" : "no");
     }

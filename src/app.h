@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <array>
+#include <vector>
 #include <functional>
 
 #define GLFW_INCLUDE_NONE
@@ -49,8 +49,10 @@ class PixelViewApp {
         vmFree = 0,  //!< free pan/zoom
         vmFit,       //!< auto-fit to the screen, with letterbox/pillarbox
         vmFill,      //!< fill the whole screen, truncate if necessary
+        vmPanel,     //!< panel mode: split into strips
     };
     ViewMode m_viewMode = vmFit;
+    ViewMode m_prevViewMode = vmFit;
     bool m_integer = false;
     double m_maxCrop = 0.0;
     double m_aspect = 1.0;
@@ -72,9 +74,11 @@ class PixelViewApp {
     struct Area { double m[4]; };
     Area m_currentArea = {{2.0, -2.0, -1.0, 1.0}};
     Area m_targetArea = {{2.0, -2.0, -1.0, 1.0}};
+    std::vector <Area> m_panelAreas;
     inline bool isZoomed() const { return (m_zoom < 0.9999) || (m_zoom > 1.0001); }
     inline bool isSquarePixels() const { return (m_aspect >= 0.9999) && (m_aspect <= 1.0001); }
-    inline bool canDoIntegerZoom() const { return isSquarePixels(); }
+    inline bool canDoIntegerZoom() const { return isSquarePixels() && (m_viewMode != vmPanel); }
+    inline bool canUsePanelMode() const { return !m_panelAreas.empty(); }
     inline bool wantIntegerZoom() const { return m_integer && canDoIntegerZoom(); }
     inline bool isScrolling() const { return (m_scrollX != 0.0) || (m_scrollY != 0.0); }
     struct WindowGeometry {
@@ -93,6 +97,8 @@ class PixelViewApp {
     bool saveConfig(const char* filename);
     void unloadImage();
     void updateView(bool usePivot, double pivotX, double pivotY);
+    void setArea(Area& a, double x0, double y0, double vw, double vh);
+    void computePanelGeometry();
     inline void updateView(bool usePivot=true) { updateView(usePivot, m_screenWidth * 0.5, m_screenHeight * 0.5); }
     void cursorPan(double dx, double dy, int mods);
     void cycleViewMode(bool with1x);
@@ -114,6 +120,7 @@ class PixelViewApp {
     // "universal" view configuration helper function to save some typing;
     // string-controlled:
     // - 'f' = set view mode to "free pan/zoom" (vmFree)
+    // - 'p' = enter panel mode (view mode = vmPanel)
     // - 'a' = enable animation
     // - 'x' = disable animation
     // - 's' = stop scrolling

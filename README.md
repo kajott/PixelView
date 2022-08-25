@@ -22,15 +22,16 @@ Just run the executable to open the (initially blank) application window. Drag &
 
 Alternatively, run the executable with the full path of an image file as a command-line argument (e.g. by dragging and dropping an image file from the file manager onto the PixelView executable). In this case, PixelView will start up directly in full-screen mode and show the image.
 
-PixelView has three basic view modes:
+PixelView has four basic view modes:
 - **Fit** mode fits the whole image into the screen or window, leaving black bars around it if the aspect ratios don't match. This is the default mode when a new image is opened.
 - **Fill** mode shows the center of the image so that it fills the entire screen, cropping away parts of the image if the aspect ratios don't match.
 - **Free** mode can show any part of the image with any magnification. This mode is automatically entered if the user pans or zooms around in the image.
+- **Panel** mode is only available for *very* wide or tall images. It splits the whole image into multiple strips that are laid out on the screen next to each other, giving a good overview of the whole image.
 
 In addition, there's two scaling modes: normal and integer-only scaling. Normal mode allows any zoom level and will try to display the image with little to no aliasing at all times. In integer scaling mode, only integral scaling factors are allowed, with the following side effects:
 - When zooming in, pixels are shown as squares with an integer size, eliminating any aliasing.
 - The Fit and Fill modes will respect integer scaling too, possibly causing the image to _not_ fill the entire screen. The user can, however, allow some amount of cropping along the edges in order to enable a higher zoom level.
-- Integer scaling is not available for images with non-square pixels, because those features just don't mix.
+- Integer scaling is not available for images with non-square pixels or in panel mode, because those features just don't mix.
 
 For very tall or wide images, PixelView supports an automatic smooth scrolling feature where the visible area of the image is moved by a constant number of pixels with every video frame.
 
@@ -47,6 +48,7 @@ The following keyboard or mouse bindings are available:
 | **Z** or **Numpad Divide** | Switch to a 1:1 zoom mode, or Fit mode if already there.
 | **T** | Switch to 1:1 zoom, or Fill mode if already there. In addition, move the visible part to the upper-left corner of the image. This also switches the view mode to Free.
 | **I** | Toggle integer scaling.
+| **P** | Switch into panel mode, or return to Free mode from there. This does nothing if the image isn't extremely tall or wide.
 | **Numpad Plus** / **Numpad Minus** or **Mouse Wheel** | Zoom into or out of the image. This also switches the view mode to Free.
 | click and hold **Left** or **Middle Mouse Button** | Move the visible area ("panning"). This also switches the view mode to Free.
 | **Cursor Keys** | Move the visible area by a few pixels in one of the four main directions. This also switches the view mode to Free.

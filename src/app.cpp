@@ -278,8 +278,20 @@ int PixelViewApp::run(int argc, char *argv[]) {
             glUseProgram(m_prog);
             glBindTexture(GL_TEXTURE_2D, m_tex);
             glUniform2f(m_locSize, float(m_imgWidth), float(m_imgHeight));
-            glUniform4f(m_locArea, float(m_currentArea.m[0]), float(m_currentArea.m[1]), float(m_currentArea.m[2]), float(m_currentArea.m[3]));
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            const Area *areas;
+            int count;
+            if ((m_viewMode == vmPanel) && !m_panelAreas.empty()) {
+                areas = m_panelAreas.data();
+                count = int(m_panelAreas.size());
+            } else {
+                areas = &m_currentArea;
+                count = 1;
+            }
+            while (count--) {
+                glUniform4f(m_locArea, float(areas->m[0]), float(areas->m[1]), float(areas->m[2]), float(areas->m[3]));
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                ++areas;
+            }
         }
 
         // draw the GUI and finish the frame
@@ -327,6 +339,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_F10:
         case GLFW_KEY_Q: m_active = false; break;
         case GLFW_KEY_I: if (canDoIntegerZoom()) { m_integer = !m_integer; viewCfg("a"); } break;
+        case GLFW_KEY_P: if (m_viewMode == vmPanel) { viewCfg("fsx"); } else { m_viewMode = vmPanel; viewCfg("sx"); } break;
         case GLFW_KEY_S: if (ctrl) { saveConfig(); } else if (isScrolling()) { m_scrollX = m_scrollY = 0.0; } else { startScroll(); } break;
         case GLFW_KEY_T: cycleTopView(); break;
         case GLFW_KEY_Z:
@@ -399,6 +412,7 @@ void PixelViewApp::handleDropEvent(int path_count, const char* paths[]) {
 void PixelViewApp::handleResizeEvent(int width, int height) {
     m_screenWidth  = width;
     m_screenHeight = height;
+    computePanelGeometry();
     updateView();
 }
 
@@ -494,7 +508,11 @@ void PixelViewApp::startScroll(double speed, double dx, double dy) {
         // speed is specified -> set the speed
         m_scrollSpeed = speed;
     }
-    if ((dx != 0.0) || (dy != 0.0)) {
+    if (m_viewMode == vmPanel) {
+        // no scrolling allowed in panel mode
+        m_scrollX = m_scrollY = 0.0;
+        return;
+    } else if ((dx != 0.0) || (dy != 0.0)) {
         // direction is specified -> set the direction
         m_scrollX = dx;
         m_scrollY = dy;
@@ -623,8 +641,9 @@ void PixelViewApp::loadImage() {
 
     // load default view configuration
     m_aspect = 1.0;
-    m_viewMode = vmFit;
+    m_viewMode = m_prevViewMode = vmFit;
     m_x0 = m_y0 = 0.0;
+    computePanelGeometry();
 
     // try to load the configuration file
     char* extStart = &m_fileName[strlen(m_fileName)];
@@ -735,6 +754,13 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
         return;  // no image loaded
     }
     clearStatus();
+    if ((m_viewMode == vmPanel) && !canUsePanelMode()) {
+        m_viewMode = vmFree;  // panel mode active, but not allowed: we can't tolerate that!
+    }
+    if ((m_viewMode != vmPanel) && (m_prevViewMode == vmPanel)) {
+        m_animate = false;  // don't allow animations when switching out of panel mode
+    }
+    m_prevViewMode = m_viewMode;
 
     // compute pivot position into relative coordinates
     double pivotRelX = (m_viewWidth  > 1.0) ? ((pivotX - m_x0) / m_viewWidth)  : 0.5;
@@ -744,7 +770,7 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     double rawWidth  = m_imgWidth  * std::max(m_aspect, 1.0);
     double rawHeight = m_imgHeight / std::min(m_aspect, 1.0);
     bool isInt = wantIntegerZoom();
-    bool autofit = (m_viewMode != vmFree);
+    bool autofit = (m_viewMode == vmFit) || (m_viewMode == vmFill);
     #ifdef DEBUG_UPDATE_VIEW
         printf("updateView: mode=%s int=%s imgSize=%dx%d rawSize=%.0fx%.0f screenSize=%.0fx%.0f ",
                (m_viewMode == vmFree) ? "free" : (m_viewMode == vmFill) ? "fill" : "fit ",
@@ -818,8 +844,69 @@ void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     #endif
 
     // convert into transform matrix
-    m_targetArea.m[0] =  2.0 * (m_viewWidth      / m_screenWidth);
-    m_targetArea.m[1] = -2.0 * (m_viewHeight     / m_screenHeight);
-    m_targetArea.m[2] =  2.0 * (std::floor(m_x0) / m_screenWidth)  - 1.0;
-    m_targetArea.m[3] = -2.0 * (std::floor(m_y0) / m_screenHeight) + 1.0;
+    setArea(m_targetArea, std::floor(m_x0), std::floor(m_y0), m_viewWidth, m_viewHeight);
+}
+
+void PixelViewApp::setArea(Area& a, double x0, double y0, double vw, double vh) {
+    a.m[0] =  2.0 * (vw / m_screenWidth);
+    a.m[1] = -2.0 * (vh / m_screenHeight);
+    a.m[2] =  2.0 * (x0 / m_screenWidth)  - 1.0;
+    a.m[3] = -2.0 * (y0 / m_screenHeight) + 1.0;
+}
+
+void PixelViewApp::computePanelGeometry() {
+    m_panelAreas.clear();
+
+    // compute raw image size with aspect ratio correction
+    double rawMajor = m_imgWidth * m_aspect;
+    double rawMinor = m_imgHeight;
+    double dispMajor = m_screenWidth;
+    double dispMinor = m_screenHeight;
+
+    // detect panel direction
+    bool wide = (rawMajor * dispMinor) > (rawMinor * dispMajor);
+
+    // turn the coordinates such that it looks as if we're always in wide mode
+    // (this avoids some serious code duplication further down the road)
+    if (!wide) {
+        std::swap(rawMajor,  rawMinor);
+        std::swap(dispMajor, dispMinor);
+    }
+
+    // detect panel count by probing increasing values until the
+    // minor axis doesn't fit the screen any longer
+    int panelCount;
+    double viewMajor, viewMinor;
+    auto updateViewSize = [&] () -> bool {
+        viewMajor = dispMajor * panelCount;
+        viewMinor = viewMajor * rawMinor / rawMajor;
+        return (viewMinor * panelCount) < dispMinor;
+    };
+    panelCount = 1;
+    while (updateViewSize()) { ++panelCount; }
+    if (panelCount <= 2) {
+        #ifndef NDEBUG
+            printf("panel mode: unavailable (%s mode, less than %d panel(s) fit)\n", wide ? "wide" : "tall", panelCount);
+        #endif
+        return;
+    }
+    --panelCount;
+    updateViewSize();
+    #ifndef NDEBUG
+        printf("panel mode: available (%s mode, %d panels of size %.1f)\n", wide ? "wide" : "tall", panelCount, viewMinor);
+    #endif
+
+    // layout the panels
+    double step = (dispMajor - viewMajor) / (panelCount - 1);  // deliberately negative
+    double gap = (dispMinor - panelCount * viewMinor) / (panelCount + 1);
+    m_panelAreas.resize(panelCount);
+    for (int i = 0;  i < panelCount;  ++i) {
+        double posMajor = i * step;
+        double posMinor = gap + i * (viewMinor + gap);
+        if (wide) {
+            setArea(m_panelAreas[i], posMajor, posMinor, viewMajor, viewMinor);
+        } else {
+            setArea(m_panelAreas[i], posMinor, posMajor, viewMinor, viewMajor);
+        }
+    }
 }

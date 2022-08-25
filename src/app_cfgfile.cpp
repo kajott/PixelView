@@ -146,11 +146,12 @@ bool PixelViewApp::saveConfig(const char* filename) {
         fprintf(f, "rely %.1f\n", std::min(100.0, std::max(0.0, (m_minY0 >= 0.0) ? 50.0 : (100.0 * m_y0 / m_minY0))));
     }
     fprintf(f, "scrollspeed %.0f\n", m_scrollSpeed);
+    bool res = !ferror(f);
     fclose(f);
     #ifndef NDEBUG
         printf("saved configuration into file '%s'\n", filename);
     #endif
-    return true;
+    return res;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

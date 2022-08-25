@@ -234,6 +234,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         ImGui::NewFrame();
         if (m_showHelp)   { uiHelpWindow(); }
         if (m_showConfig) { uiConfigWindow(); }
+        if (m_statusType) { uiStatusWindow(); }
         #ifndef NDEBUG
             if (m_showDemo) { ImGui::ShowDemoWindow(&m_showDemo); }
         #endif
@@ -293,6 +294,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         fprintf(stderr, "exiting ...\n");
     #endif
     ::free((void*)m_fileName);
+    clearStatus();
     glUseProgram(0);
     m_prog.free();
     GLutil::done();
@@ -575,6 +577,7 @@ void PixelViewApp::loadImage(const char* filename) {
 void PixelViewApp::loadImage() {
     m_imgWidth = m_imgHeight = 0;
     m_viewWidth = m_viewHeight = 0.0;
+    clearStatus();
 
     // we might have been pointed to the .pxv metadata file instead of the
     // associated image file, so remove the .pxv extension first
@@ -596,7 +599,9 @@ void PixelViewApp::loadImage() {
         #ifndef NDEBUG
             printf("image loading failed\n");
         #endif
-        unloadImage(); return;
+        setFileStatus(stError, "failed to load image: ");
+        unloadImage();
+        return;
     }
     glBindTexture(GL_TEXTURE_2D, m_tex);
     GLutil::checkError("before uploading image texture");
@@ -605,7 +610,9 @@ void PixelViewApp::loadImage() {
     glFinish();
     ::free(data);
     if (GLutil::checkError("after uploading image texture")) {
-        unloadImage(); return;
+        setFileStatus(stError, "image too large: ");
+        unloadImage();
+        return;
     }
     glGenerateMipmap(GL_TEXTURE_2D);
     GLutil::checkError("mipmap generation");
@@ -638,9 +645,14 @@ void PixelViewApp::unloadImage() {
 }
 
 void PixelViewApp::saveConfig() {
+    if (!m_fileName) { return; }
     char* extStart = &m_fileName[strlen(m_fileName)];
     strcpy(extStart, ".pxv");  // this is fine: we allocated enough extra bytes
-    saveConfig(m_fileName);
+    if (saveConfig(m_fileName)) {
+        setFileStatus(stSuccess, "saved config file: ");
+    } else {
+        setFileStatus(stSuccess, "failed to save config file: ");
+    }
     *extStart = '\0';
 }
 
@@ -701,12 +713,28 @@ void PixelViewApp::loadSibling(bool absolute, int order) {
     ::free((void*)foundItem);
 }
 
+void PixelViewApp::setStatus(StatusType st, StatusMessageType mt, const char* message) {
+    if (m_statusMsgAlloc) {
+        ::free((void*)m_statusMessage);
+        m_statusMsgAlloc = false;
+    }
+    m_statusType = st;
+    m_statusMessage = (mt != mtCopy) ? message : StringUtil::copy(message);
+    m_statusMsgAlloc = (mt != mtConst);
+}
+
+void PixelViewApp::setFileStatus(StatusType st, const char* message) {
+    char* text = StringUtil::concat(message, StringUtil::pathBaseName(m_fileName));
+    setStatus(st, mtSteal, text);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void PixelViewApp::updateView(bool usePivot, double pivotX, double pivotY) {
     if (!imgValid()) {
         return;  // no image loaded
     }
+    clearStatus();
 
     // compute pivot position into relative coordinates
     double pivotRelX = (m_viewWidth  > 1.0) ? ((pivotX - m_x0) / m_viewWidth)  : 0.5;

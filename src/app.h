@@ -38,6 +38,10 @@ class PixelViewApp {
     double m_panY = 0.0;
     bool m_cursorVisible = true;
     double m_hideCursorAt = 0.0;
+    enum StatusType { stNone = 0, stSuccess, stError };
+    StatusType m_statusType;
+    const char* m_statusMessage;
+    bool m_statusMsgAlloc = false;
     char* m_fileName = nullptr;
 
     // image view settings
@@ -102,6 +106,10 @@ class PixelViewApp {
     void updateScreenSize();
     void toggleFullscreen();
     void updateCursor(bool startTimeout=false);
+    enum StatusMessageType { mtConst, mtCopy, mtSteal };
+    void setStatus(StatusType st, StatusMessageType mt, const char* message);
+    void setFileStatus(StatusType st, const char* message);
+    inline void clearStatus() { setStatus(stNone, mtConst, nullptr); }
 
     // "universal" view configuration helper function to save some typing;
     // string-controlled:
@@ -115,6 +123,7 @@ class PixelViewApp {
     // UI functions
     void uiHelpWindow();
     void uiConfigWindow();
+    void uiStatusWindow();
 
     // event handling
     void handleKeyEvent(int key, int scancode, int action, int mods);

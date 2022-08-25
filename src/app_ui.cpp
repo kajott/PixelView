@@ -113,3 +113,46 @@ void PixelViewApp::uiConfigWindow() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+void PixelViewApp::uiStatusWindow() {
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(
+        vp->WorkPos.x + vp->WorkSize.x * 0.5f,
+        vp->WorkPos.y + vp->WorkSize.y
+    ), ImGuiCond_Always, ImVec2(0.5f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 3.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(20.0f, 20.0f));
+    ImU32 color = (m_statusType == stSuccess) ? 0xFF00A000 :
+                  (m_statusType == stError)   ? 0xFF0000C0 :
+                                                0xFFA00000;
+    ImGui::PushStyleColor(ImGuiCol_TitleBg,       color);
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, color);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg,      color);
+    ImGui::SetNextWindowBgAlpha(0.375f);
+    bool show = true;
+    if (ImGui::Begin(
+        (m_statusType == stSuccess) ? "Success##statusWindow" :
+        (m_statusType == stError)   ? "Error##statusWindow" :
+                                      "Message##statusWindow",
+        &show,
+        ImGuiWindowFlags_NoNavInputs |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoFocusOnAppearing |
+        ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoNav |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize | 
+        ImGuiWindowFlags_NoCollapse))
+    {
+        if (m_statusMessage) {
+            ImGui::TextUnformatted(m_statusMessage);
+        }
+    }
+    ImGui::End();
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(3);
+    if (!show) { clearStatus(); }
+}
+
+////////////////////////////////////////////////////////////////////////////////

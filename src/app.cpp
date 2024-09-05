@@ -68,7 +68,9 @@ static const uint32_t imageFileExts[] = {
 int PixelViewApp::run(int argc, char *argv[]) {
     if (argc > 1) {
         m_fileName = StringUtil::copy(argv[1], 4);
-        m_fullscreen = true;
+        #ifdef NDEBUG
+            m_fullscreen = true;
+        #endif
     }
 
     if (!glfwInit()) {

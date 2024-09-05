@@ -145,8 +145,7 @@ else ()
     target_compile_options (pixelview PRIVATE /W4 /WX)
 endif ()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT WIN32)
-    #                                 ^^^^^^^^^^^^^ ASAN and nVidia's OpenGL driver don't mix well!
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     if (NOT MSVC)
         message (STATUS "Debug build, enabling Address Sanitizer")
         target_compile_options (pixelview PUBLIC "-fsanitize=address")

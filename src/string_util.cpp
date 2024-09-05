@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2022 Martin J. Fiedler <keyj@emphy.de>
+// SPDX-FileCopyrightText: 2021-2024 Martin J. Fiedler <keyj@emphy.de>
 // SPDX-License-Identifier: MIT
 
 #ifdef _MSC_VER
@@ -184,6 +184,14 @@ uint32_t extractExtCode(const char* path) {
         code |= uint32_t(tolower(*path)) << shift;
     }
     return code;
+}
+
+bool checkExt(uint32_t extCode, const uint32_t* extCodes) {
+    while (extCodes && *extCodes) {
+        if (extCode == *extCodes) { return true; }
+        extCodes++;
+    }
+    return false;
 }
 
 char* pathJoin(const char* a, const char* b) {

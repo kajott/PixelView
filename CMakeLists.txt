@@ -49,6 +49,21 @@ add_library (pv_thirdparty STATIC
     thirdparty/imgui/backends/imgui_impl_glfw.cpp
     thirdparty/imgui/backends/imgui_impl_opengl3.cpp
     src/libs_c.c
+    # include libansilove piecemeal - only the really important modules
+    thirdparty/libansilove/src/fonts.c
+    thirdparty/libansilove/src/output.c
+    thirdparty/libansilove/src/error.c
+    thirdparty/libansilove/src/drawchar.c
+    thirdparty/libansilove/src/loaders/ansi.c
+    thirdparty/libansilove/src/loaders/artworx.c
+    thirdparty/libansilove/src/loaders/binary.c
+    thirdparty/libansilove/src/loaders/icedraw.c
+    thirdparty/libansilove/src/loaders/pcboard.c
+    thirdparty/libansilove/src/loaders/tundra.c
+    thirdparty/libansilove/src/loaders/xbin.c
+    thirdparty/libansilove/compat/strndup.c
+    thirdparty/libansilove/compat/strtonum.c
+    thirdparty/libansilove/compat/reallocarray.c
 )
 
 target_include_directories (pv_thirdparty PUBLIC
@@ -56,6 +71,17 @@ target_include_directories (pv_thirdparty PUBLIC
     thirdparty/imgui
     thirdparty/imgui/backends
     thirdparty/stb
+    thirdparty/libansilove/include
+)
+
+target_include_directories (pv_thirdparty PRIVATE
+    thirdparty/libansilove/src
+    thirdparty/libansilove/compat
+    src
+)
+
+target_compile_definitions (pv_thirdparty PUBLIC
+    ANSILOVE_EXTERN=extern
 )
 
 target_link_libraries (pv_thirdparty glfw)
@@ -77,6 +103,7 @@ add_executable (pixelview
     src/app_cfgfile.cpp
     src/gl_util.cpp
     src/string_util.cpp
+    src/ansi_loader.cpp
 )
 
 target_include_directories (pixelview PRIVATE pixelview)

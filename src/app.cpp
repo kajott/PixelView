@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2022 Martin J. Fiedler <keyj@emphy.de>
+// SPDX-FileCopyrightText: 2021-2024 Martin J. Fiedler <keyj@emphy.de>
 // SPDX-License-Identifier: MIT
 
 #ifdef _MSC_VER
@@ -27,6 +27,8 @@
 #include "string_util.h"
 #include "file_util.h"
 
+#include "ansi_loader.h"
+
 #include "app.h"
 
 #ifndef NDEBUG  // secondary debug switch for very verbose debug sources
@@ -46,7 +48,7 @@ static constexpr double cursorHideDelay      =    0.5;  // mouse cursor hide del
 static const double presetScrollSpeeds[] = { 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0 };
 static constexpr int numPresetScrollSpeeds = int(sizeof(presetScrollSpeeds) / sizeof(*presetScrollSpeeds));
 
-static const uint32_t validFileExts[] = {
+static const uint32_t imageFileExts[] = {
     // file extensions for formats that are supported by stb_image
     StringUtil::makeExtCode("jpg"),
     StringUtil::makeExtCode("jpeg"),
@@ -609,10 +611,18 @@ void PixelViewApp::loadImage() {
     ::free((void*)title);
 
     // load the actual image
-    #ifndef NDEBUG
-        printf("loading image: '%s'\n", m_fileName);
-    #endif
-    void* data = stbi_load(m_fileName, &m_imgWidth, &m_imgHeight, nullptr, 3);
+    void* data = nullptr;
+    if (StringUtil::checkExt(m_fileName, ANSI::fileExts)) {
+        #ifndef NDEBUG
+            printf("loading ANSI file: '%s'\n", m_fileName);
+        #endif
+        data = ANSI::render(m_fileName, m_imgWidth, m_imgHeight);
+    } else {
+        #ifndef NDEBUG
+            printf("loading image: '%s'\n", m_fileName);
+        #endif
+        data = stbi_load(m_fileName, &m_imgWidth, &m_imgHeight, nullptr, 4);
+    }
     if (!data) {
         #ifndef NDEBUG
             printf("image loading failed\n");
@@ -621,9 +631,11 @@ void PixelViewApp::loadImage() {
         unloadImage();
         return;
     }
+
+    // upload texture
     glBindTexture(GL_TEXTURE_2D, m_tex);
     GLutil::checkError("before uploading image texture");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_imgWidth, m_imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_imgWidth, m_imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glFlush();
     glFinish();
     ::free(data);
@@ -699,10 +711,8 @@ void PixelViewApp::loadSibling(bool absolute, int order) {
         bool ok = !dir.currentItemIsDir();
         if (ok) {
             uint32_t ext = StringUtil::extractExtCode(dir.currentItemName());
-            ok = false;
-            for (const uint32_t *e = validFileExts;  *e;  ++e) {
-                if (*e == ext) { ok = true; break; }
-            }
+            ok = StringUtil::checkExt(ext, imageFileExts)
+              || StringUtil::checkExt(ext, ANSI::fileExts);
         }
         if (ok && (compareName(m_fileName) != order)) {
             ok = false;  // item is on the "wrong" side of the current file

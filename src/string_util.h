@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021-2024 Martin J. Fiedler <keyj@emphy.de>
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <cstdint>
@@ -184,6 +187,13 @@ constexpr inline uint32_t makeExtCode(const char* ext) {
 
 //! extract a 32-bit code of a file extension from a path
 uint32_t extractExtCode(const char* path);
+
+//! check if an extension code is contained in a zero-terminated list
+bool checkExt(uint32_t extCode, const uint32_t* extCodes);
+
+//! check if a path has one extension from a zero-terminated list
+inline bool checkExt(const char* path, const uint32_t* extCodes)
+    { return checkExt(extractExtCode(path), extCodes); }
 
 ///////////////////////////////////////////////////////////////////////////////
 

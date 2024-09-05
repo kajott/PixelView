@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <algorithm>
+
 #include "ansilove.h"
 
 #include "string_util.h"
@@ -30,23 +32,61 @@ extern const uint32_t fileExts[] = {
     0
 };
 
-void* render(const char* filename, int &width, int &height) {
+extern const FontListEntry fontList[] = {
+    { 0,                              "Default" },
+    { ANSILOVE_FONT_TOPAZ,            "Amiga Topaz 1200" },
+    { ANSILOVE_FONT_TOPAZ_PLUS,       "Amiga Topaz+ 1200" },
+    { ANSILOVE_FONT_TOPAZ500,         "Amiga Topaz 500" },
+    { ANSILOVE_FONT_TOPAZ500_PLUS,    "Amiga Topaz+ 500" },
+    { ANSILOVE_FONT_MICROKNIGHT,      "Microknight" },
+    { ANSILOVE_FONT_MICROKNIGHT_PLUS, "Microknight+" },
+    { ANSILOVE_FONT_MOSOUL,           "mO'sOul" },
+    { ANSILOVE_FONT_POT_NOODLE,       "P0T-NOoDLE" },
+    { ANSILOVE_FONT_TERMINUS,         "Terminus (cp437)" },
+    { ANSILOVE_FONT_SPLEEN,           "Spleen" },
+    { ANSILOVE_FONT_CP437,            "IBM PC 80x25 (cp437)" },
+    { ANSILOVE_FONT_CP437_80x50,      "IBM PC 80x50 (cp437)" },
+    { ANSILOVE_FONT_CP737,            "IBM PC 80x25 (cp737 - Greek)" },
+    { ANSILOVE_FONT_CP775,            "IBM PC 80x25 (cp775 - Baltic)" },
+    { ANSILOVE_FONT_CP850,            "IBM PC 80x25 (cp850 - Latin 1)" },
+    { ANSILOVE_FONT_CP852,            "IBM PC 80x25 (cp852 - Latin 2)" },
+    { ANSILOVE_FONT_CP855,            "IBM PC 80x25 (cp855 - Cyrillic)" },
+    { ANSILOVE_FONT_CP857,            "IBM PC 80x25 (cp857 - Turkish)" },
+    { ANSILOVE_FONT_CP860,            "IBM PC 80x25 (cp860 - Portuguese)" },
+    { ANSILOVE_FONT_CP861,            "IBM PC 80x25 (cp861 - Icelandic)" },
+    { ANSILOVE_FONT_CP862,            "IBM PC 80x25 (cp862 - Hebrew)" },
+    { ANSILOVE_FONT_CP863,            "IBM PC 80x25 (cp863 - French-Canadian)" },
+    { ANSILOVE_FONT_CP865,            "IBM PC 80x25 (cp865 - Nordic)" },
+    { ANSILOVE_FONT_CP866,            "IBM PC 80x25 (cp866 - Russian)" },
+    { ANSILOVE_FONT_CP869,            "IBM PC 80x25 (cp869 - Greek)" },
+    { -1, "" },
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+void* render(RenderOptions& options, const char* filename, int &width, int &height) {
     // ansilove context initialization (equivalent to ansilove_init())
     struct ansilove_ctx     ctx;
     struct ansilove_options opt;
     ::memset(static_cast<void*>(&ctx), 0, sizeof(ctx));
     ::memset(static_cast<void*>(&opt), 0, sizeof(opt));
-    opt.bits = 8;
+    opt.truecolor = true;
+    opt.bits      = options.vga9col ? 9 : 8;
+    opt.icecolors = options.iCEcolors;
+    opt.font      = options.font;
+    opt.columns   = options.columns;
+    opt.mode      = static_cast<uint8_t>(options.mode);
 
     // load the source file
     int size = 0;
     ctx.buffer = reinterpret_cast<uint8_t*>(StringUtil::loadTextFile(filename, size));
     if (!ctx.buffer) { return nullptr; }
     ctx.maplen = ctx.length = static_cast<size_t>(size);
+    uint32_t ext = StringUtil::extractExtCode(filename);
 
     // run the actual ansilove renderer
     int res;
-    switch (StringUtil::extractExtCode(filename)) {
+    switch (ext) {
         case StringUtil::makeExtCode("adf"): res = ansilove_artworx(&ctx, &opt); break;
         case StringUtil::makeExtCode("bin"): res = ansilove_binary (&ctx, &opt); break;
         case StringUtil::makeExtCode("idf"): res = ansilove_icedraw(&ctx, &opt); break;
@@ -61,10 +101,12 @@ void* render(const char* filename, int &width, int &height) {
         (void)res;
     #endif
 
-    // export data and clean up
+    // free data, determine width and height
     ::free(static_cast<void*>(ctx.buffer));
     width  = ctx.png.length & 0xFFFF;
     height = ctx.png.length >> 16;
+
+    // done!
     return ctx.png.buffer;
 }
 

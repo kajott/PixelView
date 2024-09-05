@@ -11,6 +11,8 @@
 #include "gl_header.h"
 #include "imgui.h"
 
+#include "ansi_loader.h"
+
 class PixelViewApp {
     // GLFW and ImGui stuff
     GLFWwindow* m_window = nullptr;
@@ -43,6 +45,7 @@ class PixelViewApp {
     const char* m_statusMessage;
     bool m_statusMsgAlloc = false;
     char* m_fileName = nullptr;
+    bool m_isANSI = false;
 
     // image view settings
     enum ViewMode {
@@ -60,6 +63,7 @@ class PixelViewApp {
     double m_x0 = 0.0;
     double m_y0 = 0.0;
     double m_scrollSpeed = 4.0;
+    ANSI::RenderOptions m_ansi;
 
     // image view state
     double m_screenWidth  = 0.0;

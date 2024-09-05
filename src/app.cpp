@@ -599,6 +599,7 @@ void PixelViewApp::loadImage(const char* filename) {
 void PixelViewApp::loadImage() {
     m_imgWidth = m_imgHeight = 0;
     m_viewWidth = m_viewHeight = 0.0;
+    m_isANSI = false;
     clearStatus();
 
     // we might have been pointed to the .pxv metadata file instead of the
@@ -615,10 +616,11 @@ void PixelViewApp::loadImage() {
     // load the actual image
     void* data = nullptr;
     if (StringUtil::checkExt(m_fileName, ANSI::fileExts)) {
+        m_isANSI = true;
         #ifndef NDEBUG
             printf("loading ANSI file: '%s'\n", m_fileName);
         #endif
-        data = ANSI::render(m_fileName, m_imgWidth, m_imgHeight);
+        data = ANSI::render(m_ansi, m_fileName, m_imgWidth, m_imgHeight);
     } else {
         #ifndef NDEBUG
             printf("loading image: '%s'\n", m_fileName);

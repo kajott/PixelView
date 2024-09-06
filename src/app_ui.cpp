@@ -108,6 +108,16 @@ void PixelViewApp::uiConfigWindow() {
         i = int(m_scrollSpeed + 0.5);
         if (ImGui::SliderInt("scroll speed", &i, 1, 200, "%d px/frame")) { m_scrollSpeed = i; }
 
+        if (m_isANSI) {
+            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+            if (ImGui::CollapsingHeader("ANSI rendering options", ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (ANSI::ui(m_ansi)) {
+                    loadImage();
+                }
+            }
+        }
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::BeginDisabled(!imgValid());
         if (ImGui::Button("Save Settings")) { saveConfig(); }
         ImGui::SameLine();

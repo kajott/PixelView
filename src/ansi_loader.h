@@ -9,17 +9,18 @@ namespace ANSI {
 
 //! ANSI rendering options
 struct RenderOptions {
-    enum class Mode : uint8_t { //!< rendering modes
-        Normal        = 0,      //!< normal mode, no special handling
-        CED           = 1,      //!< CED mode (black on gray, forced 78 columns)
-        Workbench     = 3,      //!< Amiga Workbench palette
+    enum class Mode : uint8_t {  //!< rendering modes
+        Normal         = 0,      //!< normal mode, no special handling
+        CED            = 1,      //!< CED mode (black on gray, forced 78 columns)
+        Workbench      = 3,      //!< Amiga Workbench palette
     };
 
-    bool   vga9col    = false;  //!< output 9-pixel wide fonts, like VGA
-    bool   iCEcolors  = true;   //!< use iCE colors (= allow bright background)
-    int    font       = 0;      //!< ansilove internal font ID
-    int    columns    = 0;      //!< number of columns (default: auto-detect)
-    Mode mode = Mode::Normal;   //!< rendering mode
+    bool   vga9col     = false;  //!< output 9-pixel wide fonts, like VGA
+    bool   iCEcolors   = true;   //!< use iCE colors (= allow bright background)
+    int    font        = 0;      //!< ansilove internal font ID
+    bool   autoColumns = true;   //!< set number of columns automatically
+    int    columns     = 80;     //!< number of columns (default: auto-detect)
+    Mode mode = Mode::Normal;    //!< rendering mode
 
     inline RenderOptions() = default;
 };
@@ -35,5 +36,8 @@ extern const uint32_t fileExts[];
 
 //! render an ANSI file into a 32-bit image
 void* render(RenderOptions& options, const char* filename, int &width, int &height);
+
+//! draw the UI for the ANSI options; return true if reloading is required
+bool ui(RenderOptions& options);
 
 }  // namespace ANSI

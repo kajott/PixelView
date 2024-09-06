@@ -8,14 +8,16 @@
 
 #include <algorithm>
 
+#include "imgui.h"
 #include "ansilove.h"
 
 #include "string_util.h"
-
 #include "gd.h"
 
 #include "ansi_loader.h"
 
+///////////////////////////////////////////////////////////////////////////////
+// MARK: registry
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace ANSI {
@@ -43,7 +45,7 @@ extern const FontListEntry fontList[] = {
     { ANSILOVE_FONT_MOSOUL,           "mO'sOul" },
     { ANSILOVE_FONT_POT_NOODLE,       "P0T-NOoDLE" },
     { ANSILOVE_FONT_TERMINUS,         "Terminus (cp437)" },
-    { ANSILOVE_FONT_SPLEEN,           "Spleen" },
+    { ANSILOVE_FONT_SPLEEN,           "Spleen (cp437)" },
     { ANSILOVE_FONT_CP437,            "IBM PC 80x25 (cp437)" },
     { ANSILOVE_FONT_CP437_80x50,      "IBM PC 80x50 (cp437)" },
     { ANSILOVE_FONT_CP737,            "IBM PC 80x25 (cp737 - Greek)" },
@@ -63,6 +65,8 @@ extern const FontListEntry fontList[] = {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// MARK: render
+///////////////////////////////////////////////////////////////////////////////
 
 void* render(RenderOptions& options, const char* filename, int &width, int &height) {
     // ansilove context initialization (equivalent to ansilove_init())
@@ -73,8 +77,8 @@ void* render(RenderOptions& options, const char* filename, int &width, int &heig
     opt.truecolor = true;
     opt.bits      = options.vga9col ? 9 : 8;
     opt.icecolors = options.iCEcolors;
-    opt.font      = options.font;
-    opt.columns   = options.columns;
+    opt.font      = static_cast<uint8_t>(options.font);
+    opt.columns   = options.autoColumns ? 0 : static_cast<int16_t>(options.columns);
     opt.mode      = static_cast<uint8_t>(options.mode);
 
     // load the source file
@@ -110,9 +114,58 @@ void* render(RenderOptions& options, const char* filename, int &width, int &heig
     return ctx.png.buffer;
 }
 
-}  // namespace ANSI
+///////////////////////////////////////////////////////////////////////////////
+// MARK: UI
+///////////////////////////////////////////////////////////////////////////////
+
+bool ui(RenderOptions& options) {
+    bool changed = false;
+
+    const char* currentFont = fontList[0].name;
+    for (const FontListEntry* f = fontList;  f->font >= 0;  ++f) {
+        if (f->font == options.font) {
+            currentFont = f->name;
+            break;
+        }
+    }
+    if (ImGui::BeginCombo("font", currentFont)) {
+        for (const FontListEntry* f = fontList;  f->font >= 0;  ++f) {
+            bool isCurrent = (f->font == options.font);
+            if (ImGui::Selectable(f->name, isCurrent)) {
+                options.font = f->font;
+                changed = true;
+            }
+            if (isCurrent) { ImGui::SetItemDefaultFocus(); }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::Checkbox("9-pixel wide fonts (VGA)", &options.vga9col)) { changed = true; }
+    if (ImGui::Checkbox("iCE colors", &options.iCEcolors)) { changed = true; }
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("columns:");
+    ImGui::SameLine(); ImGui::SetNextItemWidth(100.0);
+    if (options.autoColumns) { ImGui::BeginDisabled(); }
+    if (ImGui::InputInt("##colEntry", &options.columns, 1, 10)) { changed = true; }
+    if (options.autoColumns) { ImGui::EndDisabled(); }
+    ImGui::SameLine(); 
+    if (ImGui::Checkbox("auto", &options.autoColumns)) { changed = true; }
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("ANSI render mode:");
+    ImGui::SameLine(); if (ImGui::RadioButton("normal",    (options.mode == RenderOptions::Mode::Normal)))    { options.mode = RenderOptions::Mode::Normal;    changed = true; }
+    ImGui::SameLine(); if (ImGui::RadioButton("CED",       (options.mode == RenderOptions::Mode::CED)))       { options.mode = RenderOptions::Mode::CED;       changed = true; }
+    ImGui::SameLine(); if (ImGui::RadioButton("Workbench", (options.mode == RenderOptions::Mode::Workbench))) { options.mode = RenderOptions::Mode::Workbench; changed = true; }
+
+    return changed;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
+// MARK: GD stubs
+///////////////////////////////////////////////////////////////////////////////
+
+}  // namespace ANSI
 
 extern "C" gdImagePtr gdImageCreateTrueColor(int sx, int sy) {
     gdImagePtr im = static_cast<gdImagePtr>(::malloc(sizeof(gdImage)));

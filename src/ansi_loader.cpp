@@ -22,9 +22,12 @@
 
 namespace ANSI {
 
+constexpr int binaryExtOffset = 2;
 extern const uint32_t fileExts[] = {
+    // first classic ANSI file extensions
     StringUtil::makeExtCode("asc"),
     StringUtil::makeExtCode("ans"),
+    // *then* the special binary formats
     StringUtil::makeExtCode("adf"),
     StringUtil::makeExtCode("bin"),
     StringUtil::makeExtCode("idf"),
@@ -88,6 +91,15 @@ void* render(RenderOptions& options, const char* filename, int &width, int &heig
     ctx.maplen = ctx.length = static_cast<size_t>(size);
     uint32_t ext = StringUtil::extractExtCode(filename);
 
+    // process tabs-to-spaces
+    if (options.tabs2spaces && !StringUtil::checkExt(ext, &fileExts[binaryExtOffset])) {
+        uint8_t* pos = ctx.buffer;
+        for (size_t cnt = ctx.length;  cnt;  --cnt, ++pos) {
+            if (*pos == 26) { break; }  // don't damage the SAUCE record
+            if (*pos == 9) { *pos = 32; }
+        }
+    }
+
     // run the actual ansilove renderer
     int res;
     switch (ext) {
@@ -142,6 +154,7 @@ bool ui(RenderOptions& options) {
 
     if (ImGui::Checkbox("9-pixel wide fonts (VGA)", &options.vga9col)) { changed = true; }
     if (ImGui::Checkbox("iCE colors", &options.iCEcolors)) { changed = true; }
+    if (ImGui::Checkbox("interpret tabs as spaces", &options.tabs2spaces)) { changed = true; }
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("columns:");

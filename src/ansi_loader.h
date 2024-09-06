@@ -15,6 +15,7 @@ struct RenderOptions {
         Workbench      = 3,      //!< Amiga Workbench palette
     };
 
+    bool   tabs2spaces = false;  //!< convert tabs to spaces (.ans only)
     bool   vga9col     = false;  //!< output 9-pixel wide fonts, like VGA
     bool   iCEcolors   = true;   //!< use iCE colors (= allow bright background)
     int    font        = 0;      //!< ansilove internal font ID

@@ -21,6 +21,8 @@
 // MARK: registry
 ///////////////////////////////////////////////////////////////////////////////
 
+const ANSILoader::RenderOptions ANSILoader::defaults;
+
 constexpr int binaryExtOffset = 2;
 const uint32_t ANSILoader::fileExts[] = {
     // first classic ANSI file extensions
@@ -76,22 +78,16 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
     struct ansilove_options opt;
     ::memset(static_cast<void*>(&ctx), 0, sizeof(ctx));
     ::memset(static_cast<void*>(&opt), 0, sizeof(opt));
-    opt.truecolor = true;
-    opt.bits      = options.vga9col ? 9 : 8;
-    opt.icecolors = options.iCEcolors;
-    opt.font      = static_cast<uint8_t>(options.font);
-    opt.columns   = options.autoColumns ? 0 : static_cast<int16_t>(options.columns);
-    opt.mode      = static_cast<uint8_t>(options.mode);
-    aspect = (options.vga9col && options.aspectCorr) ? (8.0 / 9.0) : 1.0;
 
     // load the source file
-    int size = 0;
-    ctx.buffer = reinterpret_cast<uint8_t*>(StringUtil::loadTextFile(filename, size));
-    if (!ctx.buffer) { return nullptr; }
-    ctx.maplen = ctx.length = static_cast<size_t>(size);
     uint32_t ext = StringUtil::extractExtCode(filename);
+    int size = 0;
+    char* data = StringUtil::loadTextFile(filename, size);
+    if (!data) { hasSAUCE = false; return nullptr; }
+    ctx.buffer = reinterpret_cast<uint8_t*>(data);
+    ctx.maplen = ctx.length = static_cast<size_t>(size);
 
-    // process tabs-to-spaces
+    // process tabs-to-spaces and SAUCE
     if (options.tabs2spaces && !StringUtil::checkExt(ext, &fileExts[binaryExtOffset])) {
         uint8_t* pos = ctx.buffer;
         for (size_t cnt = ctx.length;  cnt;  --cnt, ++pos) {
@@ -99,6 +95,21 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
             if (*pos == 9) { *pos = 32; }
         }
     }
+    auto sauceStatus = parseSAUCE(reinterpret_cast<char*>(ctx.buffer), size);
+    #ifndef NDEBUG
+        printf("SAUCE record status: %s\n", sauceStatus);
+    #else
+        (void)sauceStatus;
+    #endif
+
+    // set ansilove rendering options
+    opt.truecolor = true;
+    opt.bits      = options.vga9col ? 9 : 8;
+    opt.icecolors = options.iCEcolors;
+    opt.font      = static_cast<uint8_t>(options.font);
+    opt.columns   = options.autoColumns ? 0 : static_cast<int16_t>(options.columns);
+    opt.mode      = static_cast<uint8_t>(options.mode);
+    aspect = (options.vga9col && options.aspectCorr) ? (8.0 / 9.0) : 1.0;
 
     // run the actual ansilove renderer
     int res;
@@ -133,6 +144,20 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
 bool ANSILoader::ui() {
     bool changed = false;
 
+    if (ImGui::Checkbox("interpret tabs as spaces", &options.tabs2spaces)) { changed = true; }
+
+    if (ImGui::Checkbox("auto-configure using SAUCE record", &options.useSAUCE)) {
+        if (options.useSAUCE) { changed = true; }
+    }
+    ImGui::SameLine(ImGui::GetWindowWidth() - 25.f);
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.0f, 0.7f, 0.0f, 1.0f));
+    ImGui::RadioButton("##hasSAUCE", hasSAUCE);
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(hasSAUCE ? "file has a valid SAUCE record" : "file does not have a valid SAUCE record");
+    }
+    ImGui::PopStyleColor();
+    ImGui::BeginDisabled(hasSAUCE && options.useSAUCE);
+
     const char* currentFont = fontList[0].name;
     for (const FontListEntry* f = fontList;  f->font >= 0;  ++f) {
         if (f->font == options.font) {
@@ -154,23 +179,24 @@ bool ANSILoader::ui() {
 
     if (ImGui::Checkbox("9-pixel wide fonts (VGA)", &options.vga9col)) { changed = true; }
     ImGui::SameLine();
-    if (!options.vga9col) { ImGui::BeginDisabled(); }
+    ImGui::BeginDisabled(!options.vga9col);
     if (ImGui::Checkbox("aspect ratio correction", &options.aspectCorr)) { changed = true; }
-    if (!options.vga9col) { ImGui::EndDisabled(); }
+    ImGui::EndDisabled();
     if (ImGui::Checkbox("iCE colors", &options.iCEcolors)) { changed = true; }
-    if (ImGui::Checkbox("interpret tabs as spaces", &options.tabs2spaces)) { changed = true; }
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("columns:");
     ImGui::SameLine(); ImGui::SetNextItemWidth(100.0);
-    if (options.autoColumns) { ImGui::BeginDisabled(); }
+    ImGui::BeginDisabled(options.autoColumns);
     if (ImGui::InputInt("##colEntry", &options.columns, 1, 10)) { changed = true; }
-    if (options.autoColumns) { ImGui::EndDisabled(); }
+    ImGui::EndDisabled();
     ImGui::SameLine(); 
     if (ImGui::Checkbox("auto", &options.autoColumns)) { changed = true; }
 
+    ImGui::EndDisabled();  // useSAUCE
+
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("ANSI render mode:");
+    ImGui::TextUnformatted("ANSI rendering mode:");
     ImGui::SameLine(); if (ImGui::RadioButton("normal",    (options.mode == RenderMode::Normal)))    { options.mode = RenderMode::Normal;    changed = true; }
     ImGui::SameLine(); if (ImGui::RadioButton("CED",       (options.mode == RenderMode::CED)))       { options.mode = RenderMode::CED;       changed = true; }
     ImGui::SameLine(); if (ImGui::RadioButton("Workbench", (options.mode == RenderMode::Workbench))) { options.mode = RenderMode::Workbench; changed = true; }
@@ -185,11 +211,14 @@ bool ANSILoader::ui() {
 void ANSILoader::saveConfig(FILE* f) {
     assert(f != nullptr);
     fprintf(f, "ansi_tabs2spaces %d\n", options.tabs2spaces ? 1 : 0);
-    fprintf(f, "ansi_vga9col %d\n",     options.vga9col     ? 1 : 0);
-    fprintf(f, "ansi_aspect %d\n",      options.aspectCorr  ? 1 : 0);
-    fprintf(f, "ansi_icecolors %d\n",   options.iCEcolors   ? 1 : 0);
-    fprintf(f, "ansi_font %d\n",        options.font);
-    fprintf(f, "ansi_columns %d\n",     options.autoColumns ? 0 : options.columns);
+    fprintf(f, "ansi_use_sauce %d\n",   options.useSAUCE    ? 1 : 0);
+    if (!options.useSAUCE || !hasSAUCE) {
+        fprintf(f, "ansi_vga9col %d\n",     options.vga9col     ? 1 : 0);
+        fprintf(f, "ansi_aspect %d\n",      options.aspectCorr  ? 1 : 0);
+        fprintf(f, "ansi_icecolors %d\n",   options.iCEcolors   ? 1 : 0);
+        fprintf(f, "ansi_font %d\n",        options.font);
+        fprintf(f, "ansi_columns %d\n",     options.autoColumns ? 0 : options.columns);
+    }
     fprintf(f, "ansi_mode %d\n",        static_cast<uint8_t>(options.mode));
 }
 
@@ -200,6 +229,7 @@ ANSILoader::SetOptionResult ANSILoader::setOption(const char* name, int value) {
                     if ((value < vmin) || (value > vmax)) { return SetOptionResult::OutOfRange; }
     #define END_OPTION return SetOptionResult::OK; }
     HANDLE_OPTION("tabs2spaces", 0,   1) options.tabs2spaces = !!value; END_OPTION
+    HANDLE_OPTION("use_sauce",   0,   1) options.useSAUCE    = !!value; END_OPTION
     HANDLE_OPTION("vga9col",     0,   1) options.vga9col     = !!value; END_OPTION
     HANDLE_OPTION("aspect",      0,   1) options.aspectCorr  = !!value; END_OPTION
     HANDLE_OPTION("icecolors",   0,   1) options.iCEcolors   = !!value; END_OPTION
@@ -208,6 +238,122 @@ ANSILoader::SetOptionResult ANSILoader::setOption(const char* name, int value) {
                             if (value) { options.columns     =   value; } END_OPTION
     HANDLE_OPTION("mode",        0,   3) options.mode = static_cast<RenderMode>(value); END_OPTION
     return SetOptionResult::UnknownOption;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// MARK: SAUCE parser
+///////////////////////////////////////////////////////////////////////////////
+
+const char* ANSILoader::parseSAUCE(char* data, int size) {
+    // initial sanity checks
+    hasSAUCE = false;
+    if (size < 128) { return "file too small"; }
+    data = &data[size - 128];
+    if (strncmp(data, "SAUCE", 5)) { return "no SAUCE header"; }
+
+    // extract relevant header fields
+    uint8_t dataType = static_cast<uint8_t>(data[ 94]);
+    uint8_t fileType = static_cast<uint8_t>(data[ 95]);
+    uint8_t tInfo1   = static_cast<uint8_t>(data[ 96]);
+    uint8_t tFlags   = static_cast<uint8_t>(data[105]);
+    data += 106;  // move to TInfoS; guaranteed to be null-terminated because we loaded the entire file with loadTextFile()
+    #ifndef NDEBUG
+        printf("SAUCE: DataType=%d FileType=%d TInfo1=%d TFlags=0x%02X TInfoS='%s'\n", dataType, fileType, tInfo1, tFlags, data);
+    #endif
+
+    // check data and file types; extract column count
+    int columns = 0;
+    switch (dataType) {
+        case 1:  // Character
+                 switch (fileType) {
+                    case 0:  // ASCII
+                    case 1:  // ANSi
+                    case 2:  // ANSiMation
+                        columns = tInfo1;
+                        break;
+                    default: return "unsupported FileType";
+                 }
+                 break;
+        case 5:  // BinaryText
+                 columns = 2 * fileType;
+                 break;
+        default: return "unsupported DataType";
+    }
+
+    // at this point, we know that we have a proper and supported SAUCE at hand
+    hasSAUCE = true;
+    if (!options.useSAUCE) { return "valid, but ignored"; }
+
+    // copy basic data into the options structure
+    options.autoColumns = !columns;
+    if (columns) { options.columns = columns; }
+    options.iCEcolors = ((tFlags & 1) == 1);
+    switch ((tFlags >> 1) & 3) {
+        case 1: options.vga9col = false; break;
+        case 2: options.vga9col = true;  break;
+        default: break;
+    }
+    switch ((tFlags >> 3) & 3) {
+        case 1: options.aspectCorr = true;  break;
+        case 2: options.aspectCorr = false; break;
+        default: break;
+    }
+
+    // to determine the font name, we first "canonicalize" it by converting
+    // it to all-lowercase, strip any non-alphanumeric character, extract
+    // the last number (if any), and whether it ends with a plus sign
+    int num = 0;
+    bool inNumber = false;
+    bool plus = false;
+    char *pOut = data;
+    for (const char *pIn = data;  *pIn;  pIn++) {
+        char c = *pIn;
+        plus = (c == '+');
+        if (((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z'))) {
+            inNumber = false;
+            *pOut++ = StringUtil::ce_tolower(c);
+        } else if ((c >= '0') && (c <= '9')) {
+            if (!inNumber) { num = 0; }
+            num = num * 10 + c - '0';
+            inNumber = true;
+            *pOut++ = c;
+        } else {
+            inNumber = false;
+        }
+    }
+    *pOut = '\0';
+
+    // now parse the actual font name
+    options.font = 0;
+    if (!strncmp(data, "ibm", 3) || strstr(data, "vga") || strstr(data, "ega")) {
+        if (strstr(data, "vga50") || strstr(data, "ega43")) {
+            options.font = ANSILOVE_FONT_CP437_80x50;
+        } else switch (num) {
+            case 737: options.font = ANSILOVE_FONT_CP737; break;
+            case 775: options.font = ANSILOVE_FONT_CP775; break;
+            case 850: options.font = ANSILOVE_FONT_CP850; break;
+            case 852: options.font = ANSILOVE_FONT_CP852; break;
+            case 855: options.font = ANSILOVE_FONT_CP855; break;
+            case 857: options.font = ANSILOVE_FONT_CP857; break;
+            case 860: options.font = ANSILOVE_FONT_CP860; break;
+            case 861: options.font = ANSILOVE_FONT_CP861; break;
+            case 862: options.font = ANSILOVE_FONT_CP862; break;
+            case 863: options.font = ANSILOVE_FONT_CP863; break;
+            case 865: options.font = ANSILOVE_FONT_CP865; break;
+            case 866: options.font = ANSILOVE_FONT_CP866; break;
+            case 869: options.font = ANSILOVE_FONT_CP869; break;
+            default:  options.font = ANSILOVE_FONT_CP437; break;
+        }
+    } else if (strstr(data, "topaz")) {
+        options.font = (num == 1) ? (plus ? ANSILOVE_FONT_TOPAZ500_PLUS : ANSILOVE_FONT_TOPAZ500)
+                                    : (plus ? ANSILOVE_FONT_TOPAZ_PLUS    : ANSILOVE_FONT_TOPAZ);
+    }
+    else if (strstr(data, "knight"))   { options.font = plus ? ANSILOVE_FONT_MICROKNIGHT_PLUS : ANSILOVE_FONT_MICROKNIGHT; }
+    else if (strstr(data, "mosoul"))   { options.font = ANSILOVE_FONT_MOSOUL; }
+    else if (strstr(data, "noodle"))   { options.font = ANSILOVE_FONT_POT_NOODLE; }
+    else if (strstr(data, "terminus")) { options.font = ANSILOVE_FONT_TERMINUS; }
+    else if (strstr(data, "spleen"))   { options.font = ANSILOVE_FONT_SPLEEN; }
+    return options.font ? "valid and used" : "valid and used, but unknown font";
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -615,10 +615,11 @@ void PixelViewApp::loadImage(bool soft) {
         glfwSetWindowTitle(m_window, title);
         ::free((void*)title);
 
-        // load default view configuration
+        // load default configuration
         m_aspect = 1.0;
         m_viewMode = m_prevViewMode = vmFit;
         m_x0 = m_y0 = 0.0;
+        m_ansi.loadDefaults();
 
         // try to load the configuration file
         char* extStart = &m_fileName[strlen(m_fileName)];

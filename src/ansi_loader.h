@@ -21,6 +21,7 @@ public:  // types
     //! rendering options
     struct RenderOptions {
         bool   tabs2spaces = false;  //!< convert tabs to spaces (.ans only)
+        bool   useSAUCE    = true;   //!< use SAUCE record for configuration, if available
         bool   vga9col     = false;  //!< output 9-pixel wide fonts, like VGA
         bool   aspectCorr  = false;  //!< correct aspect ratio in vga9col mode
         bool   iCEcolors   = true;   //!< use iCE colors (= allow bright background)
@@ -40,11 +41,15 @@ public:  // types
 
 public:  // directly accessible member variables
 
+    //! default rendering options
+    static const RenderOptions defaults;
+
     //! rendering options
     RenderOptions options;
 
     // metadata about the last rendered file
-    double aspect = 1.0;  //!< expected aspect ratio
+    double aspect   = 1.0;    //!< expected aspect ratio
+    bool   hasSAUCE = false;  //!< SAUCE configuration information is available
 
 public:  // type and font registry
 
@@ -61,6 +66,9 @@ public:  // methods
 
     inline ANSILoader() = default;
 
+    //! reset options to defaults
+    inline void loadDefaults() { options = defaults; }
+
     //! render an ANSI file into a 32-bit image
     void* render(const char* filename, int &width, int &height);
 
@@ -72,4 +80,7 @@ public:  // methods
 
     //! set a single configuration item
     SetOptionResult setOption(const char* name, int value);
+
+private:
+    const char* parseSAUCE(char* data, int size);
 };

@@ -596,7 +596,7 @@ void PixelViewApp::loadImage(const char* filename) {
     loadImage();
 }
 
-void PixelViewApp::loadImage() {
+void PixelViewApp::loadImage(bool soft) {
     m_imgWidth = m_imgHeight = 0;
     m_viewWidth = m_viewHeight = 0.0;
     m_isANSI = false;
@@ -654,6 +654,12 @@ void PixelViewApp::loadImage() {
     #ifndef NDEBUG
         printf("loaded image successfully (%dx%d pixels)\n", m_imgWidth, m_imgHeight);
     #endif
+
+    // stop here if we only want a "soft reload"
+    if (soft) {
+        updateView(false);
+        return;
+    }
 
     // load default view configuration
     m_aspect = 1.0;

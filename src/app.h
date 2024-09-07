@@ -94,8 +94,7 @@ class PixelViewApp {
     inline bool imgValid() const { return (m_imgWidth > 0) && (m_imgHeight > 0); }
     void loadSibling(bool absolute, int order);
     void loadImage(const char* filename);
-    void loadImage();
-    void loadConfig();
+    void loadImage(bool soft=false);
     void loadConfig(const char* filename);
     void saveConfig();
     bool saveConfig(const char* filename);

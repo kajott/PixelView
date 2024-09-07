@@ -112,7 +112,7 @@ void PixelViewApp::uiConfigWindow() {
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             if (ImGui::CollapsingHeader("ANSI rendering options", ImGuiTreeNodeFlags_DefaultOpen)) {
                 if (m_ansi.ui()) {
-                    loadImage();
+                    loadImage(true);
                 }
             }
         }

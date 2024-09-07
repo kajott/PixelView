@@ -213,11 +213,14 @@ extern "C" void gdImageFill(gdImagePtr im, int x, int y, int nc) {
 
 extern "C" void gdImageFilledRectangle(gdImagePtr im, int x1, int y1, int x2, int y2, int color) {
     if (!im) { return; }
-    for (int y = y1;  y <= y2;  ++y) {
-        int *line = &im->data[im->sx * y];
-        for (int x = x1;  x <= x2;  ++x) {
+    x2 = std::min(x2 + 1, im->sx);
+    y2 = std::min(y2 + 1, im->sy);
+    int *line = &im->data[im->sx * y1];
+    for (int y = y1;  y < y2;  ++y) {
+        for (int x = x1;  x < x2;  ++x) {
             line[x] = color;
         }
+        line += im->sx;
     }
 }
 

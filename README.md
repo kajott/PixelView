@@ -4,9 +4,10 @@ An image viewer optimized for low-res pixel graphics.
 
 **Features**:
 - displays common JPEG, PNG and other common image formats
+- directly imports and renders ANSi art in various formats
 - uses an "antialiased blocky pixels"-type filter for upscaling
 - ... or can be set to only allow integer scaling ratios
-- special features for very tall or wide images:
+- special features for very tall or wide images or ANSIs:
   - single keypress to go to upper-left or lower-right corners
   - smooth automatic scrolling
 - can save display settings (zoom level etc.) for each file
@@ -67,7 +68,6 @@ The following keyboard or mouse bindings are available:
 
 - **unsafe:** never run it on untrusted data!
 - does **not** support any kind of animated images (e.g. GIFs)
-- no proper error message when opening a broken file (screen just stays black)
 - some aliasing may still be seen when downscaling, especially during animations
 - some display configuration items are screen size dependent (e.g. zoom level)
 - the display area may sometimes make a sudden jump at the end of an animation
@@ -101,3 +101,5 @@ Used third-party software:
   [GLAD](https://glad.dav1d.de/)
 - Sean Barrett's [STB](https://github.com/nothings/stb) libs
   for image file I/O
+- [libansilove](https://github.com/ansilove/libansilove)
+  for rendering ANSi files

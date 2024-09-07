@@ -63,7 +63,7 @@ class PixelViewApp {
     double m_x0 = 0.0;
     double m_y0 = 0.0;
     double m_scrollSpeed = 4.0;
-    ANSI::RenderOptions m_ansi;
+    ANSILoader m_ansi;
 
     // image view state
     double m_screenWidth  = 0.0;

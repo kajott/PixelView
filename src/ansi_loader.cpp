@@ -20,10 +20,8 @@
 // MARK: registry
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace ANSI {
-
 constexpr int binaryExtOffset = 2;
-extern const uint32_t fileExts[] = {
+const uint32_t ANSILoader::fileExts[] = {
     // first classic ANSI file extensions
     StringUtil::makeExtCode("asc"),
     StringUtil::makeExtCode("ans"),
@@ -37,7 +35,7 @@ extern const uint32_t fileExts[] = {
     0
 };
 
-extern const FontListEntry fontList[] = {
+const ANSILoader::FontListEntry ANSILoader::fontList[] = {
     { 0,                              "Default" },
     { ANSILOVE_FONT_TOPAZ,            "Amiga Topaz 1200" },
     { ANSILOVE_FONT_TOPAZ_PLUS,       "Amiga Topaz+ 1200" },
@@ -71,7 +69,7 @@ extern const FontListEntry fontList[] = {
 // MARK: render
 ///////////////////////////////////////////////////////////////////////////////
 
-void* render(RenderOptions& options, const char* filename, int &width, int &height) {
+void* ANSILoader::render(const char* filename, int &width, int &height) {
     // ansilove context initialization (equivalent to ansilove_init())
     struct ansilove_ctx     ctx;
     struct ansilove_options opt;
@@ -130,7 +128,7 @@ void* render(RenderOptions& options, const char* filename, int &width, int &heig
 // MARK: UI
 ///////////////////////////////////////////////////////////////////////////////
 
-bool ui(RenderOptions& options) {
+bool ANSILoader::ui() {
     bool changed = false;
 
     const char* currentFont = fontList[0].name;
@@ -167,9 +165,9 @@ bool ui(RenderOptions& options) {
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("ANSI render mode:");
-    ImGui::SameLine(); if (ImGui::RadioButton("normal",    (options.mode == RenderOptions::Mode::Normal)))    { options.mode = RenderOptions::Mode::Normal;    changed = true; }
-    ImGui::SameLine(); if (ImGui::RadioButton("CED",       (options.mode == RenderOptions::Mode::CED)))       { options.mode = RenderOptions::Mode::CED;       changed = true; }
-    ImGui::SameLine(); if (ImGui::RadioButton("Workbench", (options.mode == RenderOptions::Mode::Workbench))) { options.mode = RenderOptions::Mode::Workbench; changed = true; }
+    ImGui::SameLine(); if (ImGui::RadioButton("normal",    (options.mode == RenderMode::Normal)))    { options.mode = RenderMode::Normal;    changed = true; }
+    ImGui::SameLine(); if (ImGui::RadioButton("CED",       (options.mode == RenderMode::CED)))       { options.mode = RenderMode::CED;       changed = true; }
+    ImGui::SameLine(); if (ImGui::RadioButton("Workbench", (options.mode == RenderMode::Workbench))) { options.mode = RenderMode::Workbench; changed = true; }
 
     return changed;
 }
@@ -177,8 +175,6 @@ bool ui(RenderOptions& options) {
 ///////////////////////////////////////////////////////////////////////////////
 // MARK: GD stubs
 ///////////////////////////////////////////////////////////////////////////////
-
-}  // namespace ANSI
 
 extern "C" gdImagePtr gdImageCreateTrueColor(int sx, int sy) {
     gdImagePtr im = static_cast<gdImagePtr>(::malloc(sizeof(gdImage)));

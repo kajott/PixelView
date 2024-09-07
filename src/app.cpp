@@ -615,12 +615,12 @@ void PixelViewApp::loadImage() {
 
     // load the actual image
     void* data = nullptr;
-    if (StringUtil::checkExt(m_fileName, ANSI::fileExts)) {
+    if (StringUtil::checkExt(m_fileName, ANSILoader::fileExts)) {
         m_isANSI = true;
         #ifndef NDEBUG
             printf("loading ANSI file: '%s'\n", m_fileName);
         #endif
-        data = ANSI::render(m_ansi, m_fileName, m_imgWidth, m_imgHeight);
+        data = m_ansi.render(m_fileName, m_imgWidth, m_imgHeight);
     } else {
         #ifndef NDEBUG
             printf("loading image: '%s'\n", m_fileName);
@@ -716,7 +716,7 @@ void PixelViewApp::loadSibling(bool absolute, int order) {
         if (ok) {
             uint32_t ext = StringUtil::extractExtCode(dir.currentItemName());
             ok = StringUtil::checkExt(ext, imageFileExts)
-              || StringUtil::checkExt(ext, ANSI::fileExts);
+              || StringUtil::checkExt(ext, ANSILoader::fileExts);
         }
         if (ok && (compareName(m_fileName) != order)) {
             ok = false;  // item is on the "wrong" side of the current file

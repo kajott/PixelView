@@ -109,7 +109,11 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
     opt.font      = static_cast<uint8_t>(options.font);
     opt.columns   = options.autoColumns ? 0 : static_cast<int16_t>(options.columns);
     opt.mode      = static_cast<uint8_t>(options.mode);
-    aspect = (options.vga9col && options.aspectCorr) ? (8.0 / 9.0) : 1.0;
+    aspect = !options.aspectCorr ? 1.0
+           :  options.vga9col    ? (20.0 / 27.0)
+                                 : ( 5.0 /  6.0);
+    
+    (options.vga9col && options.aspectCorr) ? (8.0 / 9.0) : 1.0;
 
     // run the actual ansilove renderer
     int res;
@@ -177,11 +181,8 @@ bool ANSILoader::ui() {
         ImGui::EndCombo();
     }
 
-    if (ImGui::Checkbox("9-pixel wide fonts (VGA)", &options.vga9col)) { changed = true; }
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!options.vga9col);
+    if (ImGui::Checkbox("9-pixel wide fonts", &options.vga9col)) { changed = true; }
     if (ImGui::Checkbox("aspect ratio correction", &options.aspectCorr)) { changed = true; }
-    ImGui::EndDisabled();
     if (ImGui::Checkbox("iCE colors", &options.iCEcolors)) { changed = true; }
 
     ImGui::AlignTextToFramePadding();

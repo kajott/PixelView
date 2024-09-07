@@ -23,7 +23,7 @@ public:  // types
         bool   tabs2spaces = false;  //!< convert tabs to spaces (.ans only)
         bool   useSAUCE    = true;   //!< use SAUCE record for configuration, if available
         bool   vga9col     = false;  //!< output 9-pixel wide fonts, like VGA
-        bool   aspectCorr  = false;  //!< correct aspect ratio in vga9col mode
+        bool   aspectCorr  = false;  //!< correct aspect ratio as in traditional 4:3 displays
         bool   iCEcolors   = true;   //!< use iCE colors (= allow bright background)
         int    font        = 0;      //!< ansilove internal font ID
         bool   autoColumns = true;   //!< set number of columns automatically

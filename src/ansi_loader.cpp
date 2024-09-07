@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cassert>
 
 #include <algorithm>
 
@@ -170,6 +171,36 @@ bool ANSILoader::ui() {
     ImGui::SameLine(); if (ImGui::RadioButton("Workbench", (options.mode == RenderMode::Workbench))) { options.mode = RenderMode::Workbench; changed = true; }
 
     return changed;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// MARK: config I/O
+///////////////////////////////////////////////////////////////////////////////
+
+void ANSILoader::saveConfig(FILE* f) {
+    assert(f != nullptr);
+    fprintf(f, "ansi_tabs2spaces %d\n", options.tabs2spaces ? 1 : 0);
+    fprintf(f, "ansi_vga9col %d\n",     options.vga9col     ? 1 : 0);
+    fprintf(f, "ansi_icecolors %d\n",   options.iCEcolors   ? 1 : 0);
+    fprintf(f, "ansi_font %d\n",        options.font);
+    fprintf(f, "ansi_columns %d\n",     options.autoColumns ? 0 : options.columns);
+    fprintf(f, "ansi_mode %d\n",        static_cast<uint8_t>(options.mode));
+}
+
+ANSILoader::SetOptionResult ANSILoader::setOption(const char* name, int value) {
+    if (!name) { return SetOptionResult::UnknownOption; }
+    #define HANDLE_OPTION(oname, vmin, vmax) \
+                if (!strcmp(name, oname)) { \
+                    if ((value < vmin) || (value > vmax)) { return SetOptionResult::OutOfRange; }
+    #define END_OPTION return SetOptionResult::OK; }
+    HANDLE_OPTION("tabs2spaces", 0,   1) options.tabs2spaces = !!value; END_OPTION
+    HANDLE_OPTION("vga9col",     0,   1) options.vga9col     = !!value; END_OPTION
+    HANDLE_OPTION("icecolors",   0,   1) options.iCEcolors   = !!value; END_OPTION
+    HANDLE_OPTION("font",        0, 255) options.font        =   value; END_OPTION
+    HANDLE_OPTION("columns",     0, 255) options.autoColumns =  !value;
+                            if (value) { options.columns     =   value; } END_OPTION
+    HANDLE_OPTION("mode",        0,   3) options.mode = static_cast<RenderMode>(value); END_OPTION
+    return SetOptionResult::UnknownOption;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

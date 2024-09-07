@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdio>
 
 //! ANSI loader / renderer class
 class ANSILoader {
@@ -27,6 +28,13 @@ public:  // types
         int    columns     = 80;     //!< number of columns (default: auto-detect)
         RenderMode mode = RenderMode::Normal;  //!< rendering mode
         inline RenderOptions() = default;
+    };
+
+    //! result code for setOption()
+    enum class SetOptionResult {
+        OK = 0,         //!< everything is fine
+        UnknownOption,  //!< unknown option name
+        OutOfRange,     //!< value is out of range
     };
 
 public:  // directly accessible member variables
@@ -54,4 +62,10 @@ public:  // methods
 
     //! run the UI for the ANSI options; return true if reloading is required
     bool ui();
+
+    //! save configuration into a config file
+    void saveConfig(FILE* f);
+
+    //! set a single configuration item
+    SetOptionResult setOption(const char* name, int value);
 };

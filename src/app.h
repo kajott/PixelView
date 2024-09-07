@@ -95,7 +95,7 @@ class PixelViewApp {
     void loadSibling(bool absolute, int order);
     void loadImage(const char* filename);
     void loadImage(bool soft=false);
-    void loadConfig(const char* filename);
+    void loadConfig(const char* filename, double &relX, double &relY);
     void saveConfig();
     bool saveConfig(const char* filename);
     void unloadImage();

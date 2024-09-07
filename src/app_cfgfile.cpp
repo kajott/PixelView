@@ -19,7 +19,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void PixelViewApp::loadConfig(const char* filename) {
+void PixelViewApp::loadConfig(const char* filename, double &relX, double &relY) {
     FILE *f = fopen(filename, "r");
     if (!f) {
         #ifndef NDEBUG
@@ -27,7 +27,6 @@ void PixelViewApp::loadConfig(const char* filename) {
         #endif
         return;
     }
-    double relX = -1.0, relY = -1.0;
 
     constexpr int maxLineLen = 80;
     char line[maxLineLen];
@@ -56,6 +55,8 @@ void PixelViewApp::loadConfig(const char* filename) {
         char *end = nullptr;
         double fval = ::strtod(value, &end);
         bool isFloat = (end && (*end == '\0'));
+        int ival = int(::strtol(value, &end, 0));
+        bool isInt = (end && (*end == '\0'));
         // /*DEBUG*/ printf("config line: key='%s' value='%s' isfloat=%s fval=%g\n", key, value, isFloat?"yes":"no", fval);
 
         // some helper functions for parsing
@@ -75,6 +76,16 @@ void PixelViewApp::loadConfig(const char* filename) {
             if ((fval < vmin) || (fval > vmax)) {
                 #ifndef NDEBUG
                     printf("config file error: numerical value %g ('%s') for key '%s' out of range (%g...%g)\n", fval, value, key, vmin, vmax);
+                #endif
+                *key = '\0';  // avoid additional "invalid key" error
+                return false;
+            }
+            return true;
+        };
+        auto needInt = [&] () -> bool {
+            if (!isInt) {
+                #ifndef NDEBUG
+                    printf("config file error: invalid numerical value '%s' for key '%s'\n", value, key);
                 #endif
                 *key = '\0';  // avoid additional "invalid key" error
                 return false;
@@ -101,6 +112,21 @@ void PixelViewApp::loadConfig(const char* filename) {
         else if (!strcmp(key, "relx")        && needFloat(0.0, 100.0)) {   relX        = fval * 0.01; }
         else if (!strcmp(key, "rely")        && needFloat(0.0, 100.0)) {   relY        = fval * 0.01; }
         else if (!strcmp(key, "scrollspeed") && needFloat(0.0, 1E+10)) { m_scrollSpeed = fval; }
+        else if (!strncmp(key, "ansi_", 5)   && needInt()) {
+            switch (m_ansi.setOption(&key[5], ival)) {
+                case ANSILoader::SetOptionResult::UnknownOption:
+                    #ifndef NDEBUG
+                        printf("config file error: unrecognized key '%s'\n", key);
+                    #endif
+                    break;
+                case ANSILoader::SetOptionResult::OutOfRange:
+                    #ifndef NDEBUG
+                        printf("config file error: numerical value %d for key '%s' out of range\n", ival, key);
+                    #endif
+                    break;
+                default: break;
+            }
+        }
         else if (*key) {
             #ifndef NDEBUG
                 printf("config file error: unrecognized key '%s'\n", key);
@@ -111,13 +137,6 @@ void PixelViewApp::loadConfig(const char* filename) {
     #ifndef NDEBUG
         printf("loaded configuration from file '%s'\n", filename);
     #endif
-
-    // convert relX/relY into X0/Y0, if needed
-    if (m_viewMode == vmFree) {
-        updateView();  // required to set minX0/minY0
-        m_x0 = relX * m_minX0;
-        m_y0 = relY * m_minY0;
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -147,6 +166,9 @@ bool PixelViewApp::saveConfig(const char* filename) {
         fprintf(f, "rely %.1f\n", std::min(100.0, std::max(0.0, (m_minY0 >= 0.0) ? 50.0 : (100.0 * m_y0 / m_minY0))));
     }
     fprintf(f, "scrollspeed %.0f\n", m_scrollSpeed);
+    if (m_isANSI) {
+        m_ansi.saveConfig(f);
+    }
     bool res = !ferror(f);
     fclose(f);
     #ifndef NDEBUG

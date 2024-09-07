@@ -602,16 +602,30 @@ void PixelViewApp::loadImage(bool soft) {
     m_isANSI = false;
     clearStatus();
 
-    // we might have been pointed to the .pxv metadata file instead of the
-    // associated image file, so remove the .pxv extension first
-    if (StringUtil::extractExtCode(m_fileName) == StringUtil::makeExtCode("pxv")) {
-        StringUtil::pathRemoveExt(m_fileName);
-    }
+    double relX = -1.0, relY = -1.0;
+    if (!soft) {
+        // we might have been pointed to the .pxv metadata file instead of the
+        // associated image file, so remove the .pxv extension first
+        if (StringUtil::extractExtCode(m_fileName) == StringUtil::makeExtCode("pxv")) {
+            StringUtil::pathRemoveExt(m_fileName);
+        }
 
-    // change the window title
-    const char* title = StringUtil::concat("PixelView - ", StringUtil::pathBaseName(m_fileName));
-    glfwSetWindowTitle(m_window, title);
-    ::free((void*)title);
+        // change the window title
+        const char* title = StringUtil::concat("PixelView - ", StringUtil::pathBaseName(m_fileName));
+        glfwSetWindowTitle(m_window, title);
+        ::free((void*)title);
+
+        // load default view configuration
+        m_aspect = 1.0;
+        m_viewMode = m_prevViewMode = vmFit;
+        m_x0 = m_y0 = 0.0;
+
+        // try to load the configuration file
+        char* extStart = &m_fileName[strlen(m_fileName)];
+        strcpy(extStart, ".pxv");  // this is fine: we allocated enough extra bytes
+        loadConfig(m_fileName, relX, relY);
+        *extStart = '\0';
+    }
 
     // load the actual image
     void* data = nullptr;
@@ -655,26 +669,18 @@ void PixelViewApp::loadImage(bool soft) {
         printf("loaded image successfully (%dx%d pixels)\n", m_imgWidth, m_imgHeight);
     #endif
 
-    // stop here if we only want a "soft reload"
-    if (soft) {
-        updateView(false);
-        return;
-    }
-
-    // load default view configuration
-    m_aspect = 1.0;
-    m_viewMode = m_prevViewMode = vmFit;
-    m_x0 = m_y0 = 0.0;
+    // finalize geometry
     computePanelGeometry();
-
-    // try to load the configuration file
-    char* extStart = &m_fileName[strlen(m_fileName)];
-    strcpy(extStart, ".pxv");  // this is fine: we allocated enough extra bytes
-    loadConfig(m_fileName);
-    *extStart = '\0';
-
-    // apply new view configuration
-    viewCfg("xsn");
+    if (!soft) {
+        // convert relX/relY into X0/Y0, if needed
+        if ((m_viewMode == vmFree) && (relX >= 0.0) && (relY >= 0.0)) {
+            updateView();  // required to set minX0/minY0
+            m_x0 = relX * m_minX0;
+            m_y0 = relY * m_minY0;
+        }
+        // apply new view configuration
+        viewCfg("xsn");
+    }
     updateView(false);
 }
 

@@ -112,7 +112,14 @@ void PixelViewApp::uiConfigWindow() {
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             if (ImGui::CollapsingHeader("ANSI rendering options", ImGuiTreeNodeFlags_DefaultOpen)) {
                 if (m_ansi.ui()) {
-                    loadImage(true);
+                    double oldAspect = m_ansi.aspect;
+                    loadImage(true);  // reload image with new settings
+                    if (m_ansi.aspect != oldAspect) {
+                        // recommended aspect ratio changed -> use that AR
+                        m_aspect = m_ansi.aspect;
+                        computePanelGeometry();
+                        viewCfg("x");
+                    }
                 }
             }
         }

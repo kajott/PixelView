@@ -22,6 +22,7 @@ public:  // types
     struct RenderOptions {
         bool   tabs2spaces = false;  //!< convert tabs to spaces (.ans only)
         bool   vga9col     = false;  //!< output 9-pixel wide fonts, like VGA
+        bool   aspectCorr  = false;  //!< correct aspect ratio in vga9col mode
         bool   iCEcolors   = true;   //!< use iCE colors (= allow bright background)
         int    font        = 0;      //!< ansilove internal font ID
         bool   autoColumns = true;   //!< set number of columns automatically
@@ -41,6 +42,9 @@ public:  // directly accessible member variables
 
     //! rendering options
     RenderOptions options;
+
+    // metadata about the last rendered file
+    double aspect = 1.0;  //!< expected aspect ratio
 
 public:  // type and font registry
 

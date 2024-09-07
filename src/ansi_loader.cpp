@@ -82,6 +82,7 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
     opt.font      = static_cast<uint8_t>(options.font);
     opt.columns   = options.autoColumns ? 0 : static_cast<int16_t>(options.columns);
     opt.mode      = static_cast<uint8_t>(options.mode);
+    aspect = (options.vga9col && options.aspectCorr) ? (8.0 / 9.0) : 1.0;
 
     // load the source file
     int size = 0;
@@ -152,6 +153,10 @@ bool ANSILoader::ui() {
     }
 
     if (ImGui::Checkbox("9-pixel wide fonts (VGA)", &options.vga9col)) { changed = true; }
+    ImGui::SameLine();
+    if (!options.vga9col) { ImGui::BeginDisabled(); }
+    if (ImGui::Checkbox("aspect ratio correction", &options.aspectCorr)) { changed = true; }
+    if (!options.vga9col) { ImGui::EndDisabled(); }
     if (ImGui::Checkbox("iCE colors", &options.iCEcolors)) { changed = true; }
     if (ImGui::Checkbox("interpret tabs as spaces", &options.tabs2spaces)) { changed = true; }
 
@@ -181,6 +186,7 @@ void ANSILoader::saveConfig(FILE* f) {
     assert(f != nullptr);
     fprintf(f, "ansi_tabs2spaces %d\n", options.tabs2spaces ? 1 : 0);
     fprintf(f, "ansi_vga9col %d\n",     options.vga9col     ? 1 : 0);
+    fprintf(f, "ansi_aspect %d\n",      options.aspectCorr  ? 1 : 0);
     fprintf(f, "ansi_icecolors %d\n",   options.iCEcolors   ? 1 : 0);
     fprintf(f, "ansi_font %d\n",        options.font);
     fprintf(f, "ansi_columns %d\n",     options.autoColumns ? 0 : options.columns);
@@ -195,6 +201,7 @@ ANSILoader::SetOptionResult ANSILoader::setOption(const char* name, int value) {
     #define END_OPTION return SetOptionResult::OK; }
     HANDLE_OPTION("tabs2spaces", 0,   1) options.tabs2spaces = !!value; END_OPTION
     HANDLE_OPTION("vga9col",     0,   1) options.vga9col     = !!value; END_OPTION
+    HANDLE_OPTION("aspect",      0,   1) options.aspectCorr  = !!value; END_OPTION
     HANDLE_OPTION("icecolors",   0,   1) options.iCEcolors   = !!value; END_OPTION
     HANDLE_OPTION("font",        0, 255) options.font        =   value; END_OPTION
     HANDLE_OPTION("columns",     0, 255) options.autoColumns =  !value;

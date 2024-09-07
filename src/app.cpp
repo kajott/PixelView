@@ -635,6 +635,10 @@ void PixelViewApp::loadImage(bool soft) {
             printf("loading ANSI file: '%s'\n", m_fileName);
         #endif
         data = m_ansi.render(m_fileName, m_imgWidth, m_imgHeight);
+        if (data && (m_aspect == 1.0)) {
+            // use the ANSI renderer's recommended aspect ratio if it's not changed explicitly
+            m_aspect = m_ansi.aspect;
+        }
     } else {
         #ifndef NDEBUG
             printf("loading image: '%s'\n", m_fileName);

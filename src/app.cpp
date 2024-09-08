@@ -28,6 +28,7 @@
 #include "file_util.h"
 
 #include "ansi_loader.h"
+#include "version.h"
 
 #include "app.h"
 
@@ -101,7 +102,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
     m_window = glfwCreateWindow(
         m_fullscreen ? mode->width  : defaultWindowWidth,
         m_fullscreen ? mode->height : defaultWindowHeight,
-        "PixelView",
+        PRODUCT_NAME,
         m_fullscreen ? monitor : nullptr,
         nullptr);
     if (m_window == nullptr) {
@@ -611,7 +612,7 @@ void PixelViewApp::loadImage(bool soft) {
         }
 
         // change the window title
-        const char* title = StringUtil::concat("PixelView - ", StringUtil::pathBaseName(m_fileName));
+        const char* title = StringUtil::concat(PRODUCT_NAME " - ", StringUtil::pathBaseName(m_fileName));
         glfwSetWindowTitle(m_window, title);
         ::free((void*)title);
 

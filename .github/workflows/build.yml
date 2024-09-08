@@ -1,18 +1,18 @@
 name: Automated Builds
-on: [push]
+on: [push, workflow_dispatch]
 jobs:
   win32-build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Install CMake
-        uses: lukka/get-cmake@latest
-      - name: Win32 Build
-        run: cmake -S . -B _build -DCMAKE_BUILD_TYPE=Release -DFORCE_NO_CONSOLE=1 && cmake --build _build --config Release
+      - name: Configure
+        run: cmake -S . -B _build
+      - name: Build
+        run: cmake --build _build --config Release
       - name: Archive Win32 Package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: pixelview_win32
           path: _build/Release/pixelview.exe

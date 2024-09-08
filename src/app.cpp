@@ -223,9 +223,18 @@ int PixelViewApp::run(int argc, char *argv[]) {
     // main loop
     while (m_active && !glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
+        double now = glfwGetTime();
+        #if 0  // DEBUG timing issues
+            static double prev = 0.0;
+            double dt = now - prev;
+            prev = now;
+            if (fabs(dt - 1./60) > 0.003f) {
+                printf("timing glitch: frame took %.3f ms\n", dt * 1000.0);
+            }
+        #endif
 
         // hide the cursor
-        if ((m_hideCursorAt > 0.0) && (glfwGetTime() > m_hideCursorAt) && !m_panning) {
+        if ((m_hideCursorAt > 0.0) && (now > m_hideCursorAt) && !m_panning) {
             updateCursor();
             m_hideCursorAt = 0.0;
         }

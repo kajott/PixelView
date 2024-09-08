@@ -21,7 +21,7 @@ An image viewer optimized for low-res pixel graphics.
 
 Just run the executable to open the (initially blank) application window. Drag & drop an image file there to view it.
 
-Alternatively, run the executable with the full path of an image file as a command-line argument (e.g. by dragging and dropping an image file from the file manager onto the PixelView executable). In this case, PixelView will start up directly in full-screen mode and show the image.
+Alternatively, run the executable with the full path of an image file as a command-line argument (e.g. by dragging and dropping an input file from the file manager onto the PixelView executable). In this case, PixelView will start up directly in full-screen mode and show the image.
 
 PixelView has four basic view modes:
 - **Fit** mode fits the whole image into the screen or window, leaving black bars around it if the aspect ratios don't match. This is the default mode when a new image is opened.
@@ -44,7 +44,7 @@ The following keyboard or mouse bindings are available:
 |-------|-------|
 | **F1** | Show or hide a help window.
 | **F2** or **Tab** | Show or hide the configuration window, where view mode, scaling mode, aspect ratio etc. can be configured
-| **F1**, or **Q**, or **Esc** twice | quit the program
+| **F10**, or **Q**, or **Esc** twice | quit the program
 | **F** or **Numpad Multiply** | Switch to Fit mode, or to Fill mode if already there.
 | **Z** or **Numpad Divide** | Switch to a 1:1 zoom mode, or Fit mode if already there.
 | **T** | Switch to 1:1 zoom, or Fill mode if already there. In addition, move the visible part to the upper-left corner of the image. This also switches the view mode to Free.
@@ -79,12 +79,26 @@ The following keyboard or mouse bindings are available:
 
 ## Build Instructions
 
-The repository **must** be cloned recursively, otherwise the third-party library dependencies will be missing.
+The repository **must** be cloned recursively, otherwise the third-party library dependencies will be missing. After that, a standard [CMake](https://cmake.org) flow is used for the main build process.
 
-After that, a standard [CMake](https://cmake.org) flow is used for the main build process. For example, the following two lines should be sufficient to get a Release executable built on Windows systems with an MSVC compiler:
+For example, on current Ubuntu and Debian systems, the following commands should install all prerequisites and build a release binary in `PixelView/build/pixelview`:
 
-    cmake -S . -B _build -D FORCE_NO_CONSOLE=1
+    sudo apt install build-essential libglfw3-dev cmake ninja
+    git clone --recursive https://github.com/kajott/PixelView
+    cd PixelView
+    cmake -S. -B_build -GNinja -DCMAKE_BUILD_TYPE=Release
+    cmake --build _build
+
+On other Linux distributions, the process is exactly the same, except that the names and means of installation of the prerequisite packages will differ of course.
+
+On Windows, installations of Visual Studio (version 2017 or later, any edition), CMake and Git are required. Then, a "x64 Native Tools Command Prompt" can be opened and almost the same commands can be used:
+
+    git clone --recursive https://github.com/kajott/PixelView
+    cd PixelView
+    cmake -S. -B_build
     cmake --build _build --config Release
+
+On both platforms, instead of typing all these commands, Visual Studio Code and its CMake extensions can also be used to do all the heavy lifting.
 
 
 ## Credits

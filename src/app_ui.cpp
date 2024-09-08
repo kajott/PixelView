@@ -57,6 +57,7 @@ void PixelViewApp::uiHelpWindow() {
 
 void PixelViewApp::uiConfigWindow() {
     bool b; float f; int i;
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Display Configuration", &m_showConfig, ImGuiWindowFlags_NoNavInputs)) {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("view mode:");

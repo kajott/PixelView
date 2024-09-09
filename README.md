@@ -44,14 +44,16 @@ The following keyboard or mouse bindings are available:
 |-------|-------|
 | **F1** | Show or hide a help window.
 | **F2** or **Tab** | Show or hide the configuration window, where view mode, scaling mode, aspect ratio etc. can be configured
-| **F10**, or **Q**, or **Esc** twice | quit the program
-| **F** or **Numpad Multiply** | Switch to Fit mode, or to Fill mode if already there.
-| **Z** or **Numpad Divide** | Switch to a 1:1 zoom mode, or Fit mode if already there.
+| **F3** | Show or hide the current filename and image size.
+| **F5** | Reload the currently viewed image and reset the view properties to the default (or, if available, saved) state.
+| **F10**, or **Q**, or **Esc** twice | Quit the program.
+| **F**, or **Numpad Multiply** | Switch to Fit mode, or to Fill mode if already there.
+| **Z**, or **Numpad Divide** | Switch to a 1:1 zoom mode, or Fit mode if already there.
 | **T** | Switch to 1:1 zoom, or Fill mode if already there. In addition, move the visible part to the upper-left corner of the image. This also switches the view mode to Free.
 | **I** | Toggle integer scaling.
 | **P** | Switch into panel mode, or return to Free mode from there. This does nothing if the image isn't extremely tall or wide.
-| **Numpad Plus** / **Numpad Minus** or **Mouse Wheel** | Zoom into or out of the image. This also switches the view mode to Free.
-| click and hold **Left** or **Middle Mouse Button** | Move the visible area ("panning"). This also switches the view mode to Free.
+| **Numpad Plus** / **Numpad Minus**, or **Mouse Wheel** | Zoom into or out of the image. This also switches the view mode to Free.
+| click and hold **Left**, or **Middle Mouse Button** | Move the visible area ("panning"). This also switches the view mode to Free.
 | **Cursor Keys** | Move the visible area by a few pixels in one of the four main directions. This also switches the view mode to Free.
 | **Ctrl** + Cursor Keys | Same, but faster (more pixels per keypress).
 | **Shift** + Cursor Keys | Same, but slower (less pixels per keypress).
@@ -68,6 +70,10 @@ The following keyboard or mouse bindings are available:
 
 - **unsafe:** never run it on untrusted data!
 - does **not** support any kind of animated images (e.g. GIFs)
+- maximum image size is dependent on the GPU's maximum texture size
+  - ANSI input will be truncated to the maximum size
+  - current NVidia models can do up to 32768 pixels (equivalent to 2048 lines of ANSI), <br>
+    pre-Pascal NVidia and all current AMD and Intel can do half of that
 - some aliasing may still be seen when downscaling, especially during animations
 - some display configuration items are screen size dependent (e.g. zoom level)
 - the display area may sometimes make a sudden jump at the end of an animation

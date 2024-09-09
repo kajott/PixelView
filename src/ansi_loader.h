@@ -44,6 +44,9 @@ public:  // directly accessible member variables
     //! default rendering options
     static const RenderOptions defaults;
 
+    //! maximum output size
+    static int maxSize;
+
     //! rendering options
     RenderOptions options;
 
@@ -65,6 +68,10 @@ public:  // type and font registry
 public:  // methods
 
     inline ANSILoader() = default;
+
+    //! set the maximum output size
+    static inline void restrictMaximumSize(int newMax)
+        { if (newMax && (newMax < maxSize)) { maxSize = newMax; } }
 
     //! reset options to defaults
     inline void loadDefaults() { options = defaults; }

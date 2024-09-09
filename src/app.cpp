@@ -144,6 +144,9 @@ int PixelViewApp::run(int argc, char *argv[]) {
     }
     GLutil::enableDebugMessages();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    int maxTexSize = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize);
+    ANSILoader::restrictMaximumSize(maxTexSize);
 
     ImGui::CreateContext();
     m_io = &ImGui::GetIO();

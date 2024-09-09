@@ -23,6 +23,8 @@
 
 const ANSILoader::RenderOptions ANSILoader::defaults;
 
+int ANSILoader::maxSize = 65535;
+
 constexpr int binaryExtOffset = 2;
 const uint32_t ANSILoader::fileExts[] = {
     // first classic ANSI file extensions
@@ -134,8 +136,8 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
 
     // free data, determine width and height
     ::free(static_cast<void*>(ctx.buffer));
-    width  = ctx.png.length & 0xFFFF;
-    height = ctx.png.length >> 16;
+    width  =  ctx.png.length        & 0xFFFF;
+    height = (ctx.png.length >> 16) & 0xFFFF;
 
     // done!
     return ctx.png.buffer;
@@ -362,11 +364,24 @@ const char* ANSILoader::parseSAUCE(char* data, int size) {
 ///////////////////////////////////////////////////////////////////////////////
 
 extern "C" gdImagePtr gdImageCreateTrueColor(int sx, int sy) {
+    if ((sx < 1) || (sy < 1)) {return nullptr; }
+    #ifndef DEBUG
+        if (std::max(sx, sy) > ANSILoader::maxSize) {
+            printf("desired image size (%dx%d) exceeds maximum of %d pixels, truncating output\n", sx, sy, ANSILoader::maxSize);
+        }
+    #endif
+    sx = std::min(sx, ANSILoader::maxSize);
+    sy = std::min(sy, ANSILoader::maxSize);
     gdImagePtr im = static_cast<gdImagePtr>(::malloc(sizeof(gdImage)));
     if (!im) { return nullptr; }
+    im->data = static_cast<int*>(::malloc(sx * sy * sizeof(int)));
+    if (!im->data) {
+        ::free(static_cast<void*>(im->data));
+        ::free(static_cast<void*>(im));
+        return nullptr;
+    }
     im->sx = sx;
     im->sy = sy;
-    im->data = static_cast<int*>(::malloc(sx * sy * sizeof(int)));
     gdImageFill(im, 0, 0, 0xFF000000);
     return im;
 }
@@ -410,7 +425,9 @@ extern "C" void gdImageFilledRectangle(gdImagePtr im, int x1, int y1, int x2, in
 }
 
 extern "C" void gdImageSetPixel(gdImagePtr im, int x, int y, int color) {
-    if (im) { im->data[im->sx * y + x] = color; }
+    if (im && (x >= 0) && (y >= 0) && (x < im->sx) && (y < im->sy)) {
+        im->data[im->sx * y + x] = color;
+    }
 }
 
 extern "C" void gdImageCopyResized(gdImagePtr dst, gdImagePtr src, int dstX, int dstY, int srcX, int srcY, int dstW, int dstH, int srcW, int srcH) {
@@ -423,7 +440,7 @@ extern "C" void gdImageCopyResampled(gdImagePtr dst, gdImagePtr src, int dstX, i
 
 extern "C" void* gdImagePngPtr(gdImagePtr im, int *size) {
     // don't actually encode a .png here -- we just steal the data pointer
-    // and encode the image dimensions in the size member
+    // and encode the image dimensions in the size parameter
     *size = im->sx | (im->sy << 16);
     auto res = im->data;
     im->data = nullptr;

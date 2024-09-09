@@ -252,6 +252,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         if (m_showHelp)   { uiHelpWindow(); }
         if (m_showConfig) { uiConfigWindow(); }
         if (m_statusType) { uiStatusWindow(); }
+        if (m_showInfo)   { uiInfoWindow(); }
         #ifndef NDEBUG
             if (m_showDemo) { ImGui::ShowDemoWindow(&m_showDemo); }
         #endif
@@ -323,6 +324,7 @@ int PixelViewApp::run(int argc, char *argv[]) {
         fprintf(stderr, "exiting ...\n");
     #endif
     ::free((void*)m_fileName);
+    ::free((void*)m_infoStr);
     clearStatus();
     glUseProgram(0);
     m_prog.free();
@@ -349,6 +351,7 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_TAB:
         case GLFW_KEY_F2:  m_showConfig = !m_showConfig; updateCursor(); break;
         case GLFW_KEY_F1:  m_showHelp   = !m_showHelp;   updateCursor(); break;
+        case GLFW_KEY_F3:  m_showInfo   = !m_showInfo;   updateCursor(); updateInfo(); break;
         case GLFW_KEY_F9:  m_showDemo   = !m_showDemo;   updateCursor(); break;
         case GLFW_KEY_F5:  loadImage();  break;
         case GLFW_KEY_F6:  saveConfig(); break;
@@ -700,6 +703,7 @@ void PixelViewApp::loadImage(bool soft) {
         viewCfg("xsn");
     }
     updateView(false);
+    updateInfo();
 }
 
 void PixelViewApp::unloadImage() {
@@ -707,6 +711,7 @@ void PixelViewApp::unloadImage() {
     glBindTexture(GL_TEXTURE_2D, m_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
+    updateInfo();
 }
 
 void PixelViewApp::saveConfig() {
@@ -953,4 +958,19 @@ void PixelViewApp::computePanelGeometry() {
             setArea(m_panelAreas[i], posMinor, posMajor, viewMinor, viewMajor);
         }
     }
+}
+
+void PixelViewApp::updateInfo() {
+    ::free((void*)m_infoStr);
+    if (!m_showInfo || !m_fileName || !m_fileName[0]) {
+        m_infoStr = nullptr;
+        return;
+    }
+    const char *status = " (ERROR)";
+    if ((m_imgWidth > 0) && (m_imgHeight > 0)) {
+        static char size[64];
+        sprintf(size, " (%dx%d)", m_imgWidth, m_imgHeight);
+        status = size;
+    }
+    m_infoStr = StringUtil::concat(StringUtil::pathBaseName(m_fileName), status);
 }

@@ -183,3 +183,22 @@ void PixelViewApp::uiStatusWindow() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+void PixelViewApp::uiInfoWindow() {
+    if (!m_infoStr) { return; }
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(
+        ImVec2(vp->WorkPos.x + vp->WorkSize.x, vp->WorkPos.y),
+        ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.375f);
+    if (ImGui::Begin("##infoStr", nullptr,
+        ImGuiWindowFlags_NoNav |
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoSavedSettings | 
+        ImGuiWindowFlags_NoFocusOnAppearing))
+    {
+        ImGui::Text("%s", m_infoStr);
+    }
+    ImGui::End();
+}

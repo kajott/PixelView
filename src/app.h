@@ -31,6 +31,7 @@ class PixelViewApp {
     bool m_animate = false;
     bool m_showHelp = false;
     bool m_showConfig = false;
+    bool m_showInfo = false;
     bool m_showDemo = false;
     inline bool anyUIvisible() const { return m_showHelp || m_showConfig || m_showDemo; }
     int m_imgWidth = 0;
@@ -45,6 +46,7 @@ class PixelViewApp {
     const char* m_statusMessage;
     bool m_statusMsgAlloc = false;
     char* m_fileName = nullptr;
+    char* m_infoStr = nullptr;
     bool m_isANSI = false;
 
     // image view settings
@@ -99,6 +101,7 @@ class PixelViewApp {
     void saveConfig();
     bool saveConfig(const char* filename);
     void unloadImage();
+    void updateInfo();
     void updateView(bool usePivot, double pivotX, double pivotY);
     void setArea(Area& a, double x0, double y0, double vw, double vh);
     void computePanelGeometry();
@@ -134,6 +137,7 @@ class PixelViewApp {
     void uiHelpWindow();
     void uiConfigWindow();
     void uiStatusWindow();
+    void uiInfoWindow();
 
     // event handling
     void handleKeyEvent(int key, int scancode, int action, int mods);

@@ -28,6 +28,8 @@ const uint32_t ANSILoader::fileExts[] = {
     // first classic ANSI file extensions
     StringUtil::makeExtCode("asc"),
     StringUtil::makeExtCode("ans"),
+    StringUtil::makeExtCode("nfo"),
+    StringUtil::makeExtCode("diz"),
     // *then* the special binary formats
     StringUtil::makeExtCode("adf"),
     StringUtil::makeExtCode("bin"),

@@ -112,8 +112,6 @@ void* ANSILoader::render(const char* filename, int &width, int &height) {
     aspect = !options.aspectCorr ? 1.0
            :  options.vga9col    ? (20.0 / 27.0)
                                  : ( 5.0 /  6.0);
-    
-    (options.vga9col && options.aspectCorr) ? (8.0 / 9.0) : 1.0;
 
     // run the actual ansilove renderer
     int res;

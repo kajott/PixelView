@@ -70,8 +70,61 @@ static const uint32_t imageFileExts[] = {
 ///////////////////////////////////////////////////////////////////////////////
 
 int PixelViewApp::run(int argc, char *argv[]) {
-    if (argc > 1) {
-        m_fileName = StringUtil::copy(argv[1], 4);
+    int windowWidth  = defaultWindowWidth;
+    int windowHeight = defaultWindowHeight;
+    int autoFullscreen = true;
+    char opt = 0;
+    for (int argp = 1;  argp < argc;  ++argp) {
+        const char* arg = argv[argp];
+        char prevOpt = opt;
+        opt = ((arg[0] == '-') && arg[1] && !arg[2]) ? arg[1] : 0;
+        switch (prevOpt) {
+            case 'w': { opt = 1;
+                char* end = nullptr;
+                windowWidth = int(::strtol(arg, &end, 10));
+                if (end && (StringUtil::ce_tolower(*end) == 'x')) {
+                    windowHeight = int(::strtol(&end[1], &end, 10));
+                }
+                #ifndef NDEBUG
+                    if (!end || *end) {
+                        printf("command line error: invalid window size '%s'\n", arg);
+                    }
+                #endif
+                break; }
+            default:
+                break;
+        }
+        switch (opt) {
+            case 'h':
+                printf("Usage: pixelview [-f] [-w WxH] [INPUT]\n");
+                return 0;
+                break;
+            case 'f':
+                m_fullscreen = true;
+                autoFullscreen = false;
+                break;
+            case 'w':
+                m_fullscreen = false;
+                autoFullscreen = false;
+                break;
+            case 1:
+                break;  // already parsed, ignore
+            default:
+                if (arg[0] == '-') {
+                    #ifndef NDEBUG
+                        printf("command line error: unrecognized option '%s'\n", arg);
+                    #endif
+                } else if (!m_fileName) {
+                    m_fileName = StringUtil::copy(arg, 4);
+                } else {
+                    #ifndef NDEBUG
+                        printf("command line error: more than one filename specified\n");
+                    #endif
+                }
+                break;
+        }
+    }
+    if (autoFullscreen && m_fileName) {
         #ifdef NDEBUG
             m_fullscreen = true;
         #endif
@@ -103,8 +156,8 @@ int PixelViewApp::run(int argc, char *argv[]) {
     #endif
 
     m_window = glfwCreateWindow(
-        m_fullscreen ? mode->width  : defaultWindowWidth,
-        m_fullscreen ? mode->height : defaultWindowHeight,
+        m_fullscreen ? mode->width  : windowWidth,
+        m_fullscreen ? mode->height : windowHeight,
         PRODUCT_NAME,
         m_fullscreen ? monitor : nullptr,
         nullptr);

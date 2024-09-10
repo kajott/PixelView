@@ -65,6 +65,8 @@ The following keyboard or mouse bindings are available:
 | **Page Up** / **Page Down** | Load the previous or next image file from the same directory as the currently shown image. (The sort order is case-insensitive lexicographic without any fancy support for diacritics or numerical sorting.)
 | **Ctrl** + **Home** / **Ctrl** + **End** | Load the first or last image file from the same directory as the currently shown image.
 
+Fullscreen mode is automatically enabled on startup if PixelView started with a name of an image file as a command line parameter, e.g. by dragging an image file onto `pixelview.exe` in a file manager. The command line option `-f` can be used to force starting in fullscreen mode, and `-w WIDTHxHEIGHT` (e.g. `-w 1920x1080`) can be used to force windowed mode with a specific size.
+
 
 ## Caveats / Known Issues
 

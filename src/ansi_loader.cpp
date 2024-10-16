@@ -395,7 +395,7 @@ extern "C" void gdImageDestroy(gdImagePtr im) {
 
 extern "C" int gdImageColorAllocate(gdImagePtr im, int r, int g, int b) {
     (void)im;
-    return r | (g << 8) | (b << 16) | 0xFF000000;
+    return (r << 16) | (g << 8) | b;
 }
 
 extern "C" void gdImageColorTransparent(gdImagePtr im, int color) {

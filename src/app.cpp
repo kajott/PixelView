@@ -736,7 +736,7 @@ void PixelViewApp::loadImage(bool soft) {
     // upload texture
     glBindTexture(GL_TEXTURE_2D, m_tex);
     GLutil::checkError("before uploading image texture");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_imgWidth, m_imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_imgWidth, m_imgHeight, 0, m_isANSI ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, data);
     glFlush();
     glFinish();
     ::free(data);

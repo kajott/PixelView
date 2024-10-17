@@ -5,6 +5,12 @@
     #define _CRT_SECURE_NO_WARNINGS  // prevent MSVC warnings
 #endif
 
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #define NOMINMAX
+    #include <windows.h>
+#endif
+
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -16,6 +22,10 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#ifdef _WIN32
+    #define GLFW_EXPOSE_NATIVE_WIN32
+    #include <GLFW/glfw3native.h>
+#endif
 #include "gl_header.h"
 #include "gl_util.h"
 
@@ -167,6 +177,15 @@ int PixelViewApp::run(int argc, char *argv[]) {
         fprintf(stderr, "glfwCreateWindow failed: %s\n", err);
         return 1;
     }
+
+    #ifdef _WIN32
+        // GLFW doesn't set the window icon itself, so we need to do that manually
+        HANDLE hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1337));
+        if (hIcon) {
+            SendMessage(glfwGetWin32Window(m_window), WM_SETICON, ICON_BIG,   LPARAM(hIcon));
+            SendMessage(glfwGetWin32Window(m_window), WM_SETICON, ICON_SMALL, LPARAM(hIcon));
+        }
+    #endif
 
     glfwSetWindowUserPointer(m_window, static_cast<void*>(this));
     glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods)

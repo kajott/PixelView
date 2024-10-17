@@ -38,7 +38,6 @@ foreach (disable_ GLFW_BUILD_EXAMPLES GLFW_BUILD_TESTS GLFW_BUILD_DOCS GLFW_INST
 endforeach ()
 add_subdirectory (thirdparty/glfw)
 
-
 add_library (pv_thirdparty STATIC
     thirdparty/glad/src/glad.c
     thirdparty/imgui/imgui.cpp
@@ -115,6 +114,7 @@ if (WIN32)
     target_sources (pixelview PRIVATE
         src/file_util_win32.cpp
         src/utf8.manifest
+        src/icon.rc
     )
     # no console in Win32 Release builds (using any of three methods)
     if (FORCE_NO_CONSOLE)

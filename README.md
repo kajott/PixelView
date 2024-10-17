@@ -52,7 +52,7 @@ The following keyboard or mouse bindings are available:
 | **T** | Switch to 1:1 zoom, or Fill mode if already there. In addition, move the visible part to the upper-left corner of the image. This also switches the view mode to Free.
 | **I** | Toggle integer scaling.
 | **P** | Switch into panel mode, or return to Free mode from there. This does nothing if the image isn't extremely tall or wide.
-| **Numpad Plus** / **Numpad Minus**, or **Mouse Wheel** | Zoom into or out of the image. This also switches the view mode to Free.
+| **Numpad Plus** / **Numpad Minus**, or **+** / **-**, or **]** / **[**, or **.** / **,**, or **Mouse Wheel** | Zoom into or out of the image. This also switches the view mode to Free.
 | click and hold **Left**, or **Middle Mouse Button** | Move the visible area ("panning"). This also switches the view mode to Free.
 | **Cursor Keys** | Move the visible area by a few pixels in one of the four main directions. This also switches the view mode to Free.
 | **Ctrl** + Cursor Keys | Same, but faster (more pixels per keypress).

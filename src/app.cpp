@@ -425,7 +425,14 @@ void PixelViewApp::handleKeyEvent(int key, int scancode, int action, int mods) {
         case GLFW_KEY_KP_DIVIDE:   cycleViewMode(true);   break;
         case GLFW_KEY_F:
         case GLFW_KEY_KP_MULTIPLY: cycleViewMode(false);  break;
+        case GLFW_KEY_EQUAL:  // plus on US keyboards
+        case GLFW_KEY_RIGHT_BRACKET:
+        case GLFW_KEY_PERIOD:
         case GLFW_KEY_KP_ADD:      changeZoom(+1.0);      break;
+        case GLFW_KEY_MINUS:
+        case GLFW_KEY_SLASH:  // minus on DE keyboards
+        case GLFW_KEY_LEFT_BRACKET:
+        case GLFW_KEY_COMMA:
         case GLFW_KEY_KP_SUBTRACT: changeZoom(-1.0);      break;
         case GLFW_KEY_LEFT:   cursorPan(-1.0, 0.0, mods); break;
         case GLFW_KEY_RIGHT:  cursorPan(+1.0, 0.0, mods); break;
